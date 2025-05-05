@@ -1,30 +1,49 @@
 #! /usr/bin/bash
 
-dbms_dir=".dbms"
-if [ ! -d "$dbms_dir" ]; then
-  mkdir "$dbms_dir"
-fi
+#include other files
+# i run them as souce because i want their return values $? to be seen in
+# here the main script
+source utils.sh
 
-# a list of all databases created so far.
+# a global list of all databases created so far.
+LC_COLLATE=C
+shopt -s extglob
+
+# Global state 
+dbms_dir='.dbms'
 declare -a dbs
+
 init () {
-  PS3=">"
-  LC_COLLATE=C
-  shopt -s extglob
-  # get already created dbs so far
-  for db in "$dbms_dir"/*; do
-    # Explanation: This is parameter expansion in bash ${parameter}
+  # Create the root dir for the database
+  if [ ! -d "$dbms_dir" ]; then
+    mkdir "$dbms_dir"
+  fi
+
+  # Init already created dbs so far
+  for db in ./"$dbms_dir"/*; do
+    # Explanation: This is "parameter expansion" in bash ${parameter}
     # starting from the begining (#) delete all character (*) till you meet / (/) and keep
     # going if you meet any other successive / (the other #)
     # then append in the array where i keep track of all dbs so far.
-    dbs+=(${db##*/})
+    dbs+=(${db##*/}) # /path/to/file -> file
   done
+}
+
+# parameter 1: index of element to remove.
+# parameter 2,3,N: the array elements
+remove_elem_from_arr () {
+  local arr
+  for ((i = 0; i < $#; i++)); do
+    true
+  done
+  arr=("$@")
+
 }
 
 
 list_databases () {
-  for ((i = 0; i < "${#dbs[@]}"; i++)); do
-    echo "$((i+1)))" "${dbs[$i]}"
+  for ((i = 0; i < ${#dbs[@]}; i++)); do
+    echo "$((i+1))." "${dbs[$i]}"
   done
 }
 
@@ -35,12 +54,15 @@ connect_database () {
 drop_database () {
   select choice in "${dbs[@]}"; do
     if [ ! -d "${dbms_dir}/${choice}" ]; then
-      echo "No databases matches the name $choice"
+      echo "Err0x01: No databases matches the name $choice."
     else
+      echo "Removed database $choice"
       rm -rf "${dbms_dir}/${choice}"
     fi
   done
 }
+
+
 
 create_database () {
   read -p "Database Name: " db_name 
@@ -49,41 +71,45 @@ create_database () {
   dbs+=($db_name)
 }
 
-show_main_window () {
-  echo "==========================="
-  echo "| ---------------------   |"
-  echo "| |Select (1, 2, 3, 4)|   |"
-  echo "| ---------------------   |"
-  echo "| 1. List Databases       |"
-  echo "| 2. Connect Database     |"
-  echo "| 3. Create Database      |"
-  echo "| 4. Drop Database        |"
-  echo "| 5. Exit                 |"
-  echo "==========================="
-}
 
-
-main () {
-  init
+run () {
   while true; do
-    show_main_window
-    read choice
-    case "$choice" in
-      "1")
-        list_databases
-        ;;
-      "2")
-        ;;
-      "3")
-        create_database
-        ;;
-      "4")
-        drop_database
-        ;;
-      *)
-        ;;
-    esac
+    echo "==========================="
+    echo "| 1. List Databases       |"
+    echo "| 2. Connect Database     |"
+    echo "| 3. Create Database      |"
+    echo "| 4. Drop Database        |"
+    echo "| 5. Exit                 |"
+    echo "==========================="
+    read -p "select > " choice
+    validate_input $choice 1 5
+    if [ "$?" -eq 0 ]; then
+      case "$choice" in
+        "1")
+          list_databases
+          ;;
+        "2")
+          ;;
+        "3")
+          create_database
+          ;;
+        "4")
+          drop_database
+          ;;
+        "5")
+          exit 0
+          ;;
+        *)
+          ;;
+      esac
+    fi
   done
 }
 
+main () {
+  init
+  run
+}
+
 main
+
