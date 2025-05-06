@@ -28,6 +28,7 @@ validate_input () {
 # parameter 3: an array containg the table heading
 # parameter 4: an associative array containg the table data
 # TODO: Error check on parameters
+# Ex: print_table 5 5 "ahmed fahim" b c d eas "$(declare -p arr)"
 print_table () {
   # local term_cols
   local table_cols
@@ -82,15 +83,6 @@ print_table () {
     fi
     column_lengths+=($col_len)
   done
-
-      echo "Table columns: $table_cols"
-      echo "Table heading: ${table_heading[@]}"
-      echo "heading_lengths: ${heading_lengths[@]}"
-      echo "max_str_lengths: ${max_str_lengths[@]}"
-      echo "Table col lengths: ${column_lengths[@]}"
-      echo ""
-      echo ""
-      echo ""
 
   #==========   PRINT THE TABLE HEADING   ==============================
 

@@ -10,8 +10,8 @@ LC_COLLATE=C
 shopt -s extglob
 
 # Global state 
-dbms_dir='.dbms'
-declare -a dbs
+dbms_dir='./.dbms'
+# declare -a dbs
 
 init () {
   # Create the root dir for the database
@@ -19,14 +19,14 @@ init () {
     mkdir "$dbms_dir"
   fi
 
-  # Init already created dbs so far
-  for db in ./"$dbms_dir"/*; do
-    # Explanation: This is "parameter expansion" in bash ${parameter}
-    # starting from the begining (#) delete all character (*) till you meet / (/) and keep
-    # going if you meet any other successive / (the other #)
-    # then append in the array where i keep track of all dbs so far.
-    dbs+=(${db##*/}) # /path/to/file -> file
-  done
+  # # Init already created dbs so far
+  # for db in ./"$dbms_dir"/*; do
+  #   # Explanation: This is "parameter expansion" in bash ${parameter}
+  #   # starting from the begining (#) delete all character (*) till you meet / (/) and keep
+  #   # going if you meet any other successive / (the other #)
+  #   # then append in the array where i keep track of all dbs so far.
+  #   dbs+=(${db##*/}) # /path/to/file -> file
+  # done
 }
 
 # parameter 1: index of element to remove.
@@ -42,9 +42,23 @@ remove_elem_from_arr () {
 
 
 list_databases () {
-  for ((i = 0; i < ${#dbs[@]}; i++)); do
-    echo "$((i+1))." "${dbs[$i]}"
+  declare -a headings=("#" "Name")
+  declare -A table
+  row=0
+  for db in "$dbms_dir"/*; do
+    db_name=${db##*/}
+
+    table["$row,0"]=$((row+1)) # numbers used to list the present databases
+    table["$row,1"]="$db_name" # the name of the data base
+    table["$row,2"]="0" # number of tables inside the database
+
+    ((row++))
   done
+  print_table 3 $((row)) "#" "Name" "Table Count" "$(declare -p table)"
+  # echo dbbss$databases
+  # for ((i = 0; i < ${#dbs[@]}; i++)); do
+  #   echo "$((i+1))." "${dbs[$i]}"
+  # done
 }
 
 connect_database () {
