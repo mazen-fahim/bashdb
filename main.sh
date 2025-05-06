@@ -4,6 +4,8 @@
 # i run them as souce because i want their return values $? to be seen in
 # here the main script
 source utils.sh
+source color.sh
+source error.sh
 
 # a global list of all databases created so far.
 LC_COLLATE=C
@@ -41,82 +43,145 @@ remove_elem_from_arr () {
 }
 
 
+# parameter 1: the name to check
+# returns 0: if the name is valid
+# returns 1: if the name is invalid
+check_name_validity() {
+  reg_exp='^[a-zA-Z][a-zA-Z0-9_]*$'
+  name="$1"
+  if [[ "$name" =~ $reg_exp ]]; then
+    return 0
+  else
+    return 1
+  fi
+}
+
 list_databases () {
-  declare -a headings=("#" "Name")
+  declare -a headings=("#" "Name" "Table Count")
   declare -A table
   row=0
   for db in "$dbms_dir"/*; do
-    db_name=${db##*/}
+    local db_name=${db##*/}
+    declare -a tables=($(ls "$dbms_dir"/"$db_name"))
 
     table["$row,0"]=$((row+1)) # numbers used to list the present databases
     table["$row,1"]="$db_name" # the name of the data base
-    table["$row,2"]="0" # number of tables inside the database
+    table["$row,2"]="${#tables[@]}" # number of tables inside the database
 
     ((row++))
   done
-  print_table 3 $((row)) "#" "Name" "Table Count" "$(declare -p table)"
-  # echo dbbss$databases
-  # for ((i = 0; i < ${#dbs[@]}; i++)); do
-  #   echo "$((i+1))." "${dbs[$i]}"
-  # done
+
+  print_table "${#headings[@]}" "$((row))" "${headings[@]}" "$(declare -p table)"
+  echo ""
 }
 
-connect_database () {
+# parameter 1: database name to connect to
+connect () {
+
   true
 }
 
-drop_database () {
-  select choice in "${dbs[@]}"; do
-    if [ ! -d "${dbms_dir}/${choice}" ]; then
-      echo "Err0x01: No databases matches the name $choice."
+# TODO: Connect database by number
+connect_database () {
+  list_databases
+  read -p "connect > Database Name: " db_name
+  check_name_validity "$db_name"
+  if [ "$?" -eq 0 ]; then
+    if [ -d "${dbms_dir}/${db_name}" ]; then
+      # CONNECT TO THE DATABASE
+      connect $db_name
     else
-      echo "Removed database $choice"
-      rm -rf "${dbms_dir}/${choice}"
+      print_error 3 "$db_name"
     fi
-  done
+  else
+    print_error 1 "$db_name"
+  fi
+  echo ""
+}
+
+# TODO: Drop database by number
+drop_database () {
+  db_name="$1"
+  check_name_validity "$db_name"
+  if [ "$?" -eq 0 ]; then
+    if [ -d "${dbms_dir}/${db_name}" ]; then
+      rm -rf "${dbms_dir}/${db_name}"
+      sleep 1
+      echo -e "${GREEN}Removed database ${db_name}${NC}"
+    else
+      print_error 3 "$db_name"
+    fi
+  else
+      print_error 1 "$db_name"
+  fi
+  echo ""
 }
 
 
 
 create_database () {
-  read -p "Database Name: " db_name 
-  # TODO: CHECK NAME IS CORRECT (Starts with alphapets only )
-  mkdir "${dbms_dir}/${db_name}"
-  dbs+=($db_name)
+  db_name="$1"
+  check_name_validity "$db_name"
+  if [ "$?" -eq 0 ]; then
+    if [ ! -d "${dbms_dir}/${db_name}" ]; then
+      mkdir "${dbms_dir}/${db_name}"
+      sleep 1
+      echo -e "${GREEN}Created database \"$db_name\"${NC}"
+    else
+      print_error 2 "$db_name"
+    fi
+  else
+    print_error 1 "$db_name"
+  fi
+  echo ""
+}
+
+
+# shows the help manual
+show_help () {
+  echo "bashdb is a small database engine written in bash. I regret doing this :("
+  echo ""
+  echo "Commands"
+  printf "  %-20s%s\n" "help" "Shows this help" 
+  printf "  %-20s%s\n" "ls" "If not connected to any database, lists all existing databases." 
+  printf "  %-20s%s\n" " " "If connected to a database, lists all tables inside the database"
+  printf "  %-20s%s\n" "connect NAME" "connect to a database" 
+  printf "  %-20s%s\n" "create NAME" "create a new database" 
+  printf "  %-20s%s\n" "drop NAME" "delete a database" 
+  printf "  %-20s%s\n" "clear" "clear the terminal" 
+  printf "  %-20s%s\n" "exit" "exit from bashdb" 
+  echo ""
+  echo "Prompt"
+  printf "  %-20s%s\n" "\"bashdb@# >\"" "# means you are currently not connected to any database" 
+  printf "  %-20s%s\n" "\"bashdb@NAME >\"" "NAME is the name of the databases you are currently connected to." 
+  echo ""
 }
 
 
 run () {
+  echo "bashdb v1.0"
+  echo "Type \"help\" for help"
+  echo ""
   while true; do
-    echo "==========================="
-    echo "| 1. List Databases       |"
-    echo "| 2. Connect Database     |"
-    echo "| 3. Create Database      |"
-    echo "| 4. Drop Database        |"
-    echo "| 5. Exit                 |"
-    echo "==========================="
-    read -p "select > " choice
-    validate_input $choice 1 5
-    if [ "$?" -eq 0 ]; then
-      case "$choice" in
-        "1")
-          list_databases
-          ;;
-        "2")
-          ;;
-        "3")
-          create_database
-          ;;
-        "4")
-          drop_database
-          ;;
-        "5")
-          exit 0
-          ;;
-        *)
-          ;;
-      esac
+    read -p "bashdb@# > " command argument
+    if [[ "$command" == "help" ]]; then
+      show_help
+    elif [[ "$command" == "ls" ]]; then
+      list_databases
+    elif [[ "$command" == "connect" ]]; then
+      connect_database "$argument"
+    elif [[ "$command" == "create" ]]; then
+      create_database "$argument"
+    elif [[ "$command" == "drop" ]]; then
+      drop_database "$argument"
+    elif [[ "$command" == "clear" ]]; then
+      clear
+    elif [[ "$command" == "exit" ]]; then
+      exit 0
+    else
+      print_error "0" "$command"
     fi
+
   done
 }
 
@@ -126,4 +191,3 @@ main () {
 }
 
 main
-
