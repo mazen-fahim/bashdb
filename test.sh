@@ -29,9 +29,9 @@ declare -A arr=(
 
   ["0,2"]="v1" 
   ["1,2"]="v11" 
-  ["2,2"]="v123" 
+  ["2,2"]="v12" 
   ["3,2"]="v10" 
-  ["4,2"]="v11" 
+  ["4,2"]="v1asdjf;asjals;jdf;jfsadl;jl;asfjd;ljfasdk;j;lkafjds;ljasd;lfj;kladsfj;sajfdfsadk;lj;kalsdjd1" 
   ["5,2"]="v1"
 
   ["0,3"]="v1" 
@@ -54,14 +54,14 @@ declare -A arr=(
 # parameter 3: an array containg the table heading
 # parameter 4: an associative array containg the table data
 print_table () {
-  local term_cols
+  # local term_cols
   local table_cols
   local table_rows
   local padding
   declare -a table_heading
-  declare -a heading_length
-  declare -a max_data_length
-  term_cols=$(tput cols)
+  declare -a heading_lengths
+  declare -a max_str_lengths # for each column get the max string in all of its rows
+  # term_cols=$(tput cols)
   table_cols="$1"
   table_rows="$2"
   padding=1
@@ -72,7 +72,7 @@ print_table () {
 
   # initialize table heading array
   for ((i = 0, j = 3; i < table_cols; i++, j++)); do
-    table_heading+=(${!j}) #! indirect expansion
+    table_heading+=("${!j}") #! indirect expansion
   done
 
 
@@ -80,69 +80,100 @@ print_table () {
   # 1. the heading has length larger than the data below it
   # 2. the data below this heading has length larger than the heading itself
   # the width of the col will be the max between the two.
-  for head in "${table_heading[@]}"; do
-    heading_length+=("${#head}")
-    done
+  for head in "${table_heading[@]}"; do heading_lengths+=("${#head}"); done
 
-    for ((j = 0; j < table_cols; j++)); do
-      local max_length=0
-      for ((i = 0; i < table_rows; i++)); do
-        local key="$i,$j"
-        local val="${table_data[$key]}"
-        local col_length=${#val}
-          if [ $col_length -gt $max_length ]; then
-            max_length=$col_length
-          fi
-        done
-        max_data_length+=($max_length)
-      done
-
-      declare -a column_lengths
-      for ((i = 0; i < table_cols; i++)); do
-        local col_length=$((padding * 2)) # left right padding
-        local head_length=${heading_length[$i]}
-        local data_length=${max_data_length[$i]}
-        if [ $heading_length -gt $data_length ]; then
-          ((col_length+=heading_length))
-        else
-          ((col_length+=data_length))
+  for ((j = 0; j < table_cols; j++)); do
+    local max_len=0
+    for ((i = 0; i < table_rows; i++)); do
+      local key="$i,$j"
+      local val="${table_data[$key]}"
+      local str_len=${#val}
+        if [ $str_len -gt $max_len ]; then
+          max_len=$str_len
         fi
-        column_lengths+=($col_length)
-      done
+    done
+    max_str_lengths+=($max_len)
+  done
 
-
-      # PRINT THE TABLE HEADING
-      for ((i = 0; i < table_cols; i++));do
-        local col_len=${column_lengths[$i]}
-        local str_len=${#table_heading[$i]}
-        local pad=$(((col_len - str_len) / 2))
-        for((j = 0; j < pad; j++)); do
-          echo -n " "
-        done
-        echo -n "${table_heading[$i]}"
-        for((j = 0; j < pad; j++)); do
-          echo -n " "
-        done
-        if [ $((pad%2)) -eq 1 ]; then echo -n " "; fi
-        echo -n " " # to account for the + seperator between fields
-      done
-      printf "\n"
-      for ((i = 0; i < table_cols; i++));do
-        for ((j = 0; j < column_lengths[i]; j++));do
-          echo -n "-"
-        done
-        echo -n '+'
-      done
-      printf "\n"
-
+  declare -a column_lengths
+  for ((i = 0; i < table_cols; i++)); do
+    local col_len=$((padding * 2)) # initialize with left right padding
+    local head_len=${heading_lengths[$i]}
+    local str_len=${max_str_lengths[$i]}
+    if [ $head_len -gt $str_len ]; then
+      ((col_len+=head_len))
+    else
+      ((col_len+=str_len))
+    fi
+    column_lengths+=($col_len)
+  done
 
       echo "Table columns: $table_cols"
       echo "Table heading: ${table_heading[@]}"
-      echo "Table heading lengths: ${heading_length[@]}"
-      echo "Table data max lengths: ${max_data_length[@]}"
+      echo "heading_lengths: ${heading_lengths[@]}"
+      echo "max_str_lengths: ${max_str_lengths[@]}"
       echo "Table col lengths: ${column_lengths[@]}"
+      echo ""
+      echo ""
+      echo ""
 
+  #==========   PRINT THE TABLE HEADING   ==============================
 
-    }
+  for ((i = 0; i < table_cols; i++));do
+    local cell_len="${column_lengths[$i]}"
+    local str="${table_heading[$i]}"
+    local str_len="${#str}"
+    local diff="$((cell_len - str_len))"
+    local pad="$((diff / 2))"
 
-print_table 5 5 a b c d eas "$(declare -p arr)"
+    # 1. Padding before
+    for((j = 0; j < pad; j++)); do echo -n " "; done
+    ((cell_len-=pad))
+
+    # 2. Data
+    echo -n $str
+    ((cell_len-=str_len))
+
+    # 3. Padding after
+    for((j = 0; j < cell_len; j++)); do echo -n " "; done
+    echo -n "|"
+  done
+  printf "\n"
+
+  # PRINT THE HEAD/RECORDS SPERATOR (------)
+  for ((i = 0; i < table_cols; i++));do
+    for ((j = 0; j < column_lengths[i]; j++));do
+      echo -n "-"
+    done
+    echo -n '+'
+  done
+  printf "\n"
+
+  #==========   PRINT THE TABLE DATA      ==============================
+
+  # PRINT THE TABLE DATA
+  for ((i=0; i < table_rows; i++)); do
+    for ((j=0; j < table_cols; j++));do
+      local cell_len=${column_lengths[$j]}
+      local key="$i,$j"
+      local str="${table_data[$key]}"
+      local str_len=${#str}
+
+      # 1. Padding before
+      echo -n " "
+      ((cell_len--))
+
+      # 2. Data
+      echo -n "$str"
+      ((cell_len-=str_len))
+
+      # # 3. Padding after
+      for((k = 0; k < cell_len; k++)); do echo -n " "; done
+      echo -n "|" 
+
+    done
+    printf "\n"
+  done
+}
+
+print_table 5 5 "ahmed fahim" b c d eas "$(declare -p arr)"
