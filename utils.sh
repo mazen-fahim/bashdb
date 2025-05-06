@@ -13,7 +13,7 @@ validate_input () {
   lower_bound="$2"
   upper_bound="$3"
 
-  if [ -n "$choice" ] && [ "$choice" -ge "$lower_bound" ] && [ "$choice" -le "$upper_bound" ]; then
+  if [ -n "${choice}" ] && [ "${choice}" -ge "$lower_bound" ] && [ "${choice}" -le "$upper_bound" ]; then
     return 0
   else
     echo "Err0x00: Invalid selection. Select $(seq -s ", " $lower_bound $upper_bound)."
@@ -131,7 +131,7 @@ print_table () {
       ((cell_len--))
 
       # 2. Data
-      echo -n "$str"
+      echo -n "${str}"
       ((cell_len-=str_len))
 
       # # 3. Padding after

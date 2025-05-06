@@ -1,10 +1,15 @@
 #! /usr/bin/bash
 
+# Author: Mazen Fahim
+# File: main.sh
+
+
 #include other files
 # i run them as souce because i want their return values $? to be seen in
 # here the main script
 source utils.sh
 source color.sh
+source table.sh
 source error.sh
 
 # a global list of all databases created so far.
@@ -49,7 +54,7 @@ remove_elem_from_arr () {
 check_name_validity() {
   reg_exp='^[a-zA-Z][a-zA-Z0-9_]*$'
   name="$1"
-  if [[ "$name" =~ $reg_exp ]]; then
+  if [[ "${name}" =~ $reg_exp ]]; then
     return 0
   else
     return 1
@@ -57,7 +62,7 @@ check_name_validity() {
 }
 
 list_databases () {
-  declare -a headings=("#" "Name" "Table Count")
+  declare -a headings=("#" "Database Name" "Table Count")
   declare -A table
   row=0
   for db in "$dbms_dir"/*; do
@@ -77,24 +82,51 @@ list_databases () {
 
 # parameter 1: database name to connect to
 connect () {
+  db_name="$1"
+  while true; do
+    read -p "bashdb@${db_name} > " command argument
+    if [[ "${command}" == "help" ]]; then
+      show_help
+    elif [[ "${command}" == "ls" ]]; then
+      list_tables "${db_name}"
+    elif [[ "${command}" == "connect" ]]; then
+      connect_database "${argument}"
+    elif [[ "${command}" == "create" ]]; then
+      create_table "${db_name}" "${argument}"
+    elif [[ "${command}" == "drop" ]]; then
+      drop_table "${db_name}" "${argument}"
+    elif [[ "${command}" == "clear" ]]; then
+      clear
+      echo "bashdb v1.0"
+      echo "Type \"help\" for help"
+      echo ""
+    elif [[ "${command}" == "exit" ]]; then
+      sleep 1
+      echo -e "${GREEN}Exited from database \"${db_name}\"${NC}"
+      return 0
+    else
+      print_error "0" "${command}"
+    fi
 
-  true
+  done
 }
+
 
 # TODO: Connect database by number
 connect_database () {
-  list_databases
-  read -p "connect > Database Name: " db_name
-  check_name_validity "$db_name"
+  db_name="$1"
+  check_name_validity "${db_name}"
   if [ "$?" -eq 0 ]; then
     if [ -d "${dbms_dir}/${db_name}" ]; then
-      # CONNECT TO THE DATABASE
-      connect $db_name
+      sleep 1
+      echo -e "${GREEN}Connected to database \"${db_name}\"${NC}"
+      echo ""
+      connect "${db_name}"
     else
-      print_error 3 "$db_name"
+      print_error 3 "${db_name}"
     fi
   else
-    print_error 1 "$db_name"
+    print_error 1 "${db_name}"
   fi
   echo ""
 }
@@ -102,36 +134,40 @@ connect_database () {
 # TODO: Drop database by number
 drop_database () {
   db_name="$1"
-  check_name_validity "$db_name"
+  check_name_validity "${db_name}"
   if [ "$?" -eq 0 ]; then
     if [ -d "${dbms_dir}/${db_name}" ]; then
       rm -rf "${dbms_dir}/${db_name}"
       sleep 1
       echo -e "${GREEN}Removed database ${db_name}${NC}"
     else
-      print_error 3 "$db_name"
+      print_error 3 "${db_name}"
     fi
   else
-      print_error 1 "$db_name"
+      print_error 1 "${db_name}"
   fi
   echo ""
 }
 
 
-
+# parameter 1: name of the database to be created
+# returns 1 if database name is not valid
+# returns 2 if database already exisits
 create_database () {
   db_name="$1"
-  check_name_validity "$db_name"
+  check_name_validity "${db_name}"
   if [ "$?" -eq 0 ]; then
     if [ ! -d "${dbms_dir}/${db_name}" ]; then
       mkdir "${dbms_dir}/${db_name}"
       sleep 1
       echo -e "${GREEN}Created database \"$db_name\"${NC}"
     else
-      print_error 2 "$db_name"
+      print_error 2 "${db_name}"
+      return 2
     fi
   else
-    print_error 1 "$db_name"
+    print_error 1 "${db_name}"
+    return 1
   fi
   echo ""
 }
@@ -139,17 +175,21 @@ create_database () {
 
 # shows the help manual
 show_help () {
-  echo "bashdb is a small database engine written in bash. I regret doing this :("
+  echo "bashdb is a database engine written in bash. I regret doing this :("
   echo ""
   echo "Commands"
   printf "  %-20s%s\n" "help" "Shows this help" 
-  printf "  %-20s%s\n" "ls" "If not connected to any database, lists all existing databases." 
+  printf "  %-20s%s\n" "ls" "If not connected to any database, lists all existing databases" 
   printf "  %-20s%s\n" " " "If connected to a database, lists all tables inside the database"
-  printf "  %-20s%s\n" "connect NAME" "connect to a database" 
-  printf "  %-20s%s\n" "create NAME" "create a new database" 
-  printf "  %-20s%s\n" "drop NAME" "delete a database" 
+  printf "  %-20s%s\n" "connect NAME" "If not connected to a database, connects to the database" 
+  printf "  %-20s%s\n" " " "If connected to a database, results in an error (you are already connected)" 
+  printf "  %-20s%s\n" "create NAME" "If not connected to a database, creates a new database" 
+  printf "  %-20s%s\n" " " "If connected to a database, creates a new table inside the database"
+  printf "  %-20s%s\n" "drop NAME" "If not connected to a database, deletes the database" 
+  printf "  %-20s%s\n" " " "If connected to a database, deletes the table inside the database"
   printf "  %-20s%s\n" "clear" "clear the terminal" 
-  printf "  %-20s%s\n" "exit" "exit from bashdb" 
+  printf "  %-20s%s\n" "exit" "If not connected to any database, exits from bashdb" 
+  printf "  %-20s%s\n" " " "If connected to a database, exits from the database" 
   echo ""
   echo "Prompt"
   printf "  %-20s%s\n" "\"bashdb@# >\"" "# means you are currently not connected to any database" 
@@ -164,24 +204,26 @@ run () {
   echo ""
   while true; do
     read -p "bashdb@# > " command argument
-    if [[ "$command" == "help" ]]; then
+    if [[ "${command}" == "help" ]]; then
       show_help
-    elif [[ "$command" == "ls" ]]; then
-      list_databases
-    elif [[ "$command" == "connect" ]]; then
-      connect_database "$argument"
-    elif [[ "$command" == "create" ]]; then
-      create_database "$argument"
-    elif [[ "$command" == "drop" ]]; then
-      drop_database "$argument"
-    elif [[ "$command" == "clear" ]]; then
+    elif [[ "${command}" == "ls" ]]; then
+        list_databases
+    elif [[ "${command}" == "connect" ]]; then
+      connect_database "${argument}"
+    elif [[ "${command}" == "create" ]]; then
+      create_database "${argument}"
+    elif [[ "${command}" == "drop" ]]; then
+      drop_database "${argument}"
+    elif [[ "${command}" == "clear" ]]; then
       clear
-    elif [[ "$command" == "exit" ]]; then
+      echo "bashdb v1.0"
+      echo "Type \"help\" for help"
+      echo ""
+    elif [[ "${command}" == "exit" ]]; then
       exit 0
     else
-      print_error "0" "$command"
+      print_error "0" "${command}"
     fi
-
   done
 }
 
