@@ -56,16 +56,21 @@ drop_table() {
 # returns 4 if table name is not valid
 # returns 6 if table already exisits
 create_table() {
-  db_name="${1}"
-  query="${2}"
+  local db_name="${1}"
+  local query="${2}"
+  declare -a tb_names
+  declare -a tb_types
+  declare -a tb_constraints
+  local meta_table=""
+
 # ^create\s+table\s+([a-zA-Z]\w*)\s*\(
 # /(\s*([a-zA-Z]\w*)\s+(int|varchar)(\s+primary key)?\s*(,|\)$))/gm
-  create_regexp='^create\s+table\s+([a-zA-Z]\w*)\s*\('
-  create_content_regexp='(\s*([a-zA-Z]\w*)\s+(int|varchar)(\s+primary key)?\s*(,|\)$))'
+  local create_regexp='^create\s+table\s+([a-zA-Z]\w*)\s*\('
+  local create_content_regexp='\s*([a-zA-Z]\w*)\s+(int|varchar)(\s+primary key)?\s*(,|\)$)'
 
   if [[ "$query" =~ $create_regexp ]]; then
-    query_content="${query#*\(}"
-    tb_name="${BASH_REMATCH[1]}"
+    local query_content="${query#*\(}"
+    local tb_name="${BASH_REMATCH[1]}"
 
     declare -a matches
     while true; do
@@ -77,11 +82,50 @@ create_table() {
         break
       fi
     done
+    # if query content is zero then it all matched the pattern then the 
+    # syntax is correct
     if [ -z "$query_content" ]; then
-      sz="${#matches[@]}"
+      local sz="${#matches[@]}"
+
+      local skip="t"
       for((i = 0; i < sz; i++)); do
-        echo $i: "${matches[$i]}"
+
+        if [[ "$skip" == "t" ]]; then
+          skip="f"
+          continue
+        fi
+
+        # remove trailing and leading white spaces
+        matches[$i]=$(sed 's/^[ \t]*//;s/[ \t]*$//' <<< ${matches[$i]})
+
+        # skip empty matches (for some reason) TODO: figure out why
+        if [[ -z ${matches[$i]} ]]; then continue; fi
+
+        # end of table creation
+        if [[ "${matches[$i]}" == ")" ]]; then break; fi
+
+        # process next column (make count = 0)
+        if [[ "${matches[$i]}" == "," ]]; then
+          skip="t"
+          meta_table=${meta_table%:}
+          meta_table+="\n"
+          continue
+        fi
+
+        meta_table+="${matches[$i]}:"
       done
+      meta_table=${meta_table%:}
+
+      # create table
+      if [ ! -f "${dbms_dir}/${db_name}/${tb_name}" ]; then
+        touch "${dbms_dir}/${db_name}/${tb_name}"
+        touch "${dbms_dir}/${db_name}/_${tb_name}"
+        echo -e "$meta_table" > "${dbms_dir}/${db_name}/_${tb_name}"
+      else
+        print_error 6 "${tb_name}"
+        return 6
+      fi
+
     else
       print_error 7
       return 7
