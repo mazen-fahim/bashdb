@@ -11,7 +11,8 @@ list_tables () {
   row=0
   for tb in "$dbms_dir"/"$db_name"/*; do
     if [[ -f $tb ]]; then
-      local tb_name=${tb##*/}
+      local tb_name=$(sed -n "s+.dbms/${db_name}/++gp" <<< $tb)
+      # local tb_name=${tb##*/}
       # make sure that it's not the meta file
       if [[ "$tb_name" =~ ^[a-zA-Z][a-zA-Z0-9_]*$ ]]; then
         tb["$row,0"]="$tb_name"
@@ -36,6 +37,7 @@ drop_table() {
   if [ "$?" -eq 0 ]; then
     if [ -f "${dbms_dir}/${db_name}/${tb_name}" ]; then
       rm "${dbms_dir}/${db_name}/${tb_name}"
+      rm "${dbms_dir}/${db_name}/_${tb_name}"
       sleep 1
       echo -e "${GREEN}Removed table ${tb_name}${NC}"
     else
@@ -75,4 +77,16 @@ create_table() {
 }
 
 
+
+# TODO: 
+# create table table_name (id int primary key, name varchar(20) not null);
+# create\s+table\s+(?<table_name>[a-zA-Z][a-zA-Z0-9_]*)\s*\((\s*([a-zA-Z][a-zA-Z0-9_]*)\s+([a-zA-Z][a-zA-Z0-9_()]*)\s+(primary key|no null)?[,')']?)+
+
+#1. create\s+table\s+\w+\s*\(([^)]+)\)
+#2. \s*([a-zA-Z][a-zA-Z0-9_]*)\s+([a-zA-Z][a-zA-Z0-9_()]*)\s+(primary key|no null)?\s*[,)]?
+
+# insert 
+# select 
+# delete 
+# update
 

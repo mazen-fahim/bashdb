@@ -28,6 +28,7 @@ validate_input () {
 # parameter 3: an array containg the table heading
 # parameter 4: an associative array containg the table data
 # TODO: Error check on parameters
+# TODO: add table caption
 # Ex: print_table 5 5 "ahmed fahim" b c d eas "$(declare -p arr)"
 print_table () {
   # local term_cols
@@ -141,4 +142,7 @@ print_table () {
     done
     printf "\n"
   done
+
+  echo "(${table_rows} rows)"
+
 }

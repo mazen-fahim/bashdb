@@ -17,7 +17,7 @@ LC_COLLATE=C
 shopt -s extglob
 
 # Global state 
-dbms_dir='./.dbms'
+dbms_dir='.dbms'
 # declare -a dbs
 
 init () {
@@ -25,15 +25,6 @@ init () {
   if [ ! -d "$dbms_dir" ]; then
     mkdir "$dbms_dir"
   fi
-
-  # # Init already created dbs so far
-  # for db in ./"$dbms_dir"/*; do
-  #   # Explanation: This is "parameter expansion" in bash ${parameter}
-  #   # starting from the begining (#) delete all character (*) till you meet / (/) and keep
-  #   # going if you meet any other successive / (the other #)
-  #   # then append in the array where i keep track of all dbs so far.
-  #   dbs+=(${db##*/}) # /path/to/file -> file
-  # done
 }
 
 # parameter 1: index of element to remove.
@@ -66,12 +57,12 @@ list_databases () {
   declare -A table
   row=0
   for db in "$dbms_dir"/*; do
-    local db_name=${db##*/}
-    declare -a tables=($(ls "$dbms_dir"/"$db_name"))
+    local db_name=$(sed -n 's+.dbms/++gp' <<< $db)
+    # local db_name="${db##*/}"
 
     table["$row,0"]=$((row+1)) # numbers used to list the present databases
     table["$row,1"]="$db_name" # the name of the data base
-    table["$row,2"]="${#tables[@]}" # number of tables inside the database
+    table["$row,2"]=$(($(ls -1 ${dbms_dir}/${db_name} | wc -l) / 2)) # number of tables inside the database
 
     ((row++))
   done
@@ -90,7 +81,9 @@ connect () {
     elif [[ "${command}" == "ls" ]]; then
       list_tables "${db_name}"
     elif [[ "${command}" == "connect" ]]; then
-      connect_database "${argument}"
+      # TODO: You are already connected. Exit the current one first.
+      true
+      # connect_database "${argument}"
     elif [[ "${command}" == "create" ]]; then
       create_table "${db_name}" "${argument}"
     elif [[ "${command}" == "drop" ]]; then
@@ -113,6 +106,9 @@ connect () {
 
 
 # TODO: Connect database by number
+# parameter 1: name of the database to be connected
+# returns 1 if database name is not valid
+# returns 3 if database doesn't exisits
 connect_database () {
   db_name="$1"
   check_name_validity "${db_name}"
@@ -124,14 +120,20 @@ connect_database () {
       connect "${db_name}"
     else
       print_error 3 "${db_name}"
+      return 3
     fi
   else
     print_error 1 "${db_name}"
+    return 1
   fi
   echo ""
 }
 
+
 # TODO: Drop database by number
+# parameter 1: name of the database to be droped
+# returns 1 if database name is not valid
+# returns 3 if database doesn't exisits
 drop_database () {
   db_name="$1"
   check_name_validity "${db_name}"
@@ -142,9 +144,11 @@ drop_database () {
       echo -e "${GREEN}Removed database ${db_name}${NC}"
     else
       print_error 3 "${db_name}"
+      return 3
     fi
   else
       print_error 1 "${db_name}"
+      return 1
   fi
   echo ""
 }
