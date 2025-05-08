@@ -17,7 +17,7 @@ LC_COLLATE=C
 shopt -s extglob
 
 # Global state 
-dbms_dir='.dbms'
+dbms_dir="$(dirname ${BASH_SOURCE[0]})/.dbms"
 # declare -a dbs
 
 init () {
@@ -57,7 +57,7 @@ list_databases () {
   declare -A table
   row=0
   for db in "$dbms_dir"/*; do
-    local db_name=$(sed -n 's+.dbms/++gp' <<< $db)
+    local db_name=$(sed -n "s+${dbms_dir}/++gp" <<< $db)
     # local db_name="${db##*/}"
 
     table["$row,0"]=$((row+1)) # numbers used to list the present databases
@@ -76,16 +76,32 @@ connect () {
   db_name="$1"
   while true; do
     read -p "bashdb@${db_name} > " command argument
-    if [[ "${command}" == "help" ]]; then
-      show_help
+    if [[ "${command}" == "query" ]]; then
+      query="$argument"
+      query_type="$(cut -f1 -d" " <<< $argument)"
+      if [[ "$query_type" == "create" ]]; then
+        create_table "${db_name}" "$query"
+      elif [[ "$query_type" == "insert" ]]; then
+        true
+      elif [[ "$query_type" == "update" ]]; then
+        true
+      elif [[ "$query_type" == "delete" ]]; then
+        true
+      elif [[ "$query_type" == "select" ]]; then
+        true
+      else
+        print_error 7
+     fi
     elif [[ "${command}" == "ls" ]]; then
       list_tables "${db_name}"
+
+    elif [[ "${command}" == "help" ]]; then
+      show_help
+
     elif [[ "${command}" == "connect" ]]; then
       # TODO: You are already connected. Exit the current one first.
       true
       # connect_database "${argument}"
-    elif [[ "${command}" == "create" ]]; then
-      create_table "${db_name}" "${argument}"
     elif [[ "${command}" == "drop" ]]; then
       drop_table "${db_name}" "${argument}"
     elif [[ "${command}" == "clear" ]]; then

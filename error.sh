@@ -22,6 +22,8 @@ print_error () {
   elif [ $err -eq 5 ]; then
       echo -e "${RED}Err0x05: Table \"$info\" doesn't exist${NC}"
   elif [ $err -eq 6 ]; then
-      echo -e "${RED}Err0x05: Table \"$info\" already exists${NC}"
+      echo -e "${RED}Err0x06: Table \"$info\" already exists${NC}"
+  elif [ $err -eq 7 ]; then
+      echo -e "${RED}Err0x07: Query syntax error. type \"help\" for help${NC}"
   fi
 }
