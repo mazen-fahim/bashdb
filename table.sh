@@ -54,9 +54,9 @@ drop_table() {
 # parameter 2: sql create query
 # returns 4 if table name is not valid
 # returns 6 if table already exisits
-handle_create_query() {
+create_table() {
   local db_name="${1}"
-  local query="${2,,}"
+  local query="${2}"
   local meta_table=""
 
 # ^create\s+table\s+([a-zA-Z]\w*)\s*\(
@@ -156,9 +156,9 @@ handle_create_query() {
 # returns 4 if table name is not valid
 # returns 6 if table already exisits
 # TODO: sql supports ; as end of statement (maybe support it)
-handle_insert_query() {
+insert_table() {
   local db_name="${1}"
-  local query="${2,,}"
+  local query="${2}"
 
 
   # this is how we implement the regex 'g' flag using a loop
@@ -188,8 +188,7 @@ handle_insert_query() {
   # 4. will match this -> |(  'value1', 123, '#2value2')|
   #                       -------------------------------
   local column_values_pattern="^\((\s*('[^']*'|\d+)\s*[,)])+"
-  quote="'"
-
+  #                       -------------------------------
 
   local tb_name
   declare -a matches
@@ -252,74 +251,80 @@ handle_insert_query() {
 }
 
 
-# parameter 1: connected database name
-# parameter 2: sql delete query
-# returns 4 if table name is not valid
-# returns 5 if table doesn't exisit
-# TODO: sql supports ; as end of statement (maybe support it)
-handle_delete_query() {
-  local db_name="${1}"
-  local query="${2,,}" # this handles if user entered query uppercase
-
-  # this is how we implement the regex 'g' flag using a loop
+# this is how we implement the regex 'g' flag using a loop
   # The idea is to do the following
   # 1. match the string to the pattern
   # 2. get the match
   # 3. remove the acquired match from the input string
-  # 4. trim the string from any leading or trailing whitespaces 
-  # 5. start from step 1 with the next pattern
+  # 4. trim the string
+  # 5. do step 1
 
-  #                       ----------------------------
-  # 1. will match this -> |delete   from   table_name|
-  #                       ----------------------------
-  local delete_from_table_pattern='^delete\s+from\s+([a-zA-Z]\w*)'
+# Todo:: detect * in the column names 
 
-  #                       ---------------------------------
-  # 2. will match this -> |where column_name     >     12 |
-  #                       ---------------------------------
-  local where_condition_pattern="^where\s+([a-zA-Z][a-zA-Z0-9_]*)[[:space:]]*(=|!=|>|<|>=|<=)[[:space:]]*('[^']*'|[0-9]+)"
 
-  local table_name
-  local column_name
-  local logical_operator
-  local value
+handle_select_query() {
+  local db_name="${1}"
+  local query="${2}"
+
+
+  #                       --------------------
+  # 1. will match this -> |select   coloumns |
+  #                       --------------------
+
+  local select_pattern='^select'
+
+  #                       ------------------------
+  # 2. will match this -> |( c1, c2  , c3 , c5  )|
+  #                       ------------------------
+  local select_column_names_pattern='^\((\s*(([a-zA-Z]\w*|\*))\s*[,)])+'
+
+
+  #                       ------------------------
+  # 3. will match this -> | from     table_name  |
+  #                       ------------------------
+  
+  local from_table_pattern='^from\s+([a-zA-Z]\w*)'
+
+
+  local tb_name
+
+ query=$(trim_string "$query")
+  echo "query input to 1st pattern: $query"
+  if [[ "$query" =~ $select_pattern ]]; then
+    query=$(sed -n -r "s/${select_pattern}//p" <<< "$query")
+  else
+    echo "ana klmt select"
+    print_error 7
+    return 7
+  fi
 
   query=$(trim_string "$query")
-  if [[ "$query" =~ $delete_from_table_pattern ]]; then
-    table_name="${BASH_REMATCH[1]}"
-    query=$(sed -n -r "s/${delete_from_table_pattern}//p" <<< "$query")
+  echo "query input to 2nd pattern: $query"
+  if [[ "$query" =~ $select_column_names_pattern ]]; then
+    column_names="${BASH_REMATCH[0]}"
+    echo "column names: $column_names"
+    query=$(sed -n -r "s/${select_column_names_pattern}//p" <<< "$query")
   else
+    echo "ana column names" 
     print_error 7
     return 7
   fi
+
 
   query=$(trim_string "$query")
-  if [[ $query =~ $where_condition_pattern ]]; then
-    column_name="${BASH_REMATCH[1]}"
-    logical_operator="${BASH_REMATCH[2]}"
-    value="${BASH_REMATCH[3]}"
-    query=$(sed -n -r "s/${where_condition_pattern}//p" <<< "$query")
+  echo "from table input: $query"
+  if [[ "$query" =~ $from_table_pattern ]]; then
+    tb_name="${BASH_REMATCH[1]}"
+    echo "table name: $tb_name"
+    query=$(sed -n -r "s/${from_table_pattern}//p" <<< "$query")
   else
+    echo " table name"
     print_error 7
     return 7
   fi
 
-  if [[ -n "$query_content" ]]; then
-    print_error 7
-    return 7
-  fi
-
-  #############################################
-
-  echo "Column Name:" "$column_name"
-  echo "Logical Operator:" "$logical_operator"
-  echo "Value" "$value"
 
 }
-
-
-
-
 # TODO: 
 
 # 2. insert (1 day: 4hours, )
