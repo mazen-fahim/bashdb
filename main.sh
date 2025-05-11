@@ -82,7 +82,7 @@ connect () {
       if [[ "$query_type" == "create" ]]; then
         create_table "${db_name}" "$query"
       elif [[ "$query_type" == "insert" ]]; then
-        true
+        insert_table "${db_name}" "$query"
       elif [[ "$query_type" == "update" ]]; then
         true
       elif [[ "$query_type" == "delete" ]]; then
@@ -110,7 +110,6 @@ connect () {
       echo "Type \"help\" for help"
       echo ""
     elif [[ "${command}" == "exit" ]]; then
-      sleep 1
       echo -e "${GREEN}Exited from database \"${db_name}\"${NC}"
       return 0
     else
@@ -130,7 +129,6 @@ connect_database () {
   check_name_validity "${db_name}"
   if [ "$?" -eq 0 ]; then
     if [ -d "${dbms_dir}/${db_name}" ]; then
-      sleep 1
       echo -e "${GREEN}Connected to database \"${db_name}\"${NC}"
       echo ""
       connect "${db_name}"
@@ -156,7 +154,6 @@ drop_database () {
   if [ "$?" -eq 0 ]; then
     if [ -d "${dbms_dir}/${db_name}" ]; then
       rm -rf "${dbms_dir}/${db_name}"
-      sleep 1
       echo -e "${GREEN}Removed database ${db_name}${NC}"
     else
       print_error 3 "${db_name}"
@@ -179,7 +176,6 @@ create_database () {
   if [ "$?" -eq 0 ]; then
     if [ ! -d "${dbms_dir}/${db_name}" ]; then
       mkdir "${dbms_dir}/${db_name}"
-      sleep 1
       echo -e "${GREEN}Created database \"$db_name\"${NC}"
     else
       print_error 2 "${db_name}"
