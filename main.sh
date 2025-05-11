@@ -24,6 +24,7 @@ init () {
   # Create the root dir for the database
   if [ ! -d "$dbms_dir" ]; then
     mkdir "$dbms_dir"
+    mkdir "$dbms_dir"/main
   fi
 }
 
@@ -86,6 +87,7 @@ connect () {
       elif [[ "$query_type" == "update" ]]; then
         true
       elif [[ "$query_type" == "delete" ]]; then
+        handle_delete_query "${db_name}" "$query"
         true
       elif [[ "$query_type" == "select" ]]; then
         true
@@ -192,6 +194,7 @@ create_database () {
 # shows the help manual
 show_help () {
   echo "bashdb is a database engine written in bash. I regret doing this :("
+  echo "When you first start bashdb you have a main database"
   echo ""
   echo "Commands"
   printf "  %-20s%s\n" "help" "Shows this help" 
