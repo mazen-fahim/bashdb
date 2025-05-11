@@ -81,11 +81,13 @@ connect () {
       query="$argument"
       query_type="$(cut -f1 -d" " <<< $argument)"
       if [[ "$query_type" == "create" ]]; then
-        create_table "${db_name}" "$query"
+        handle_create_query "${db_name}" "$query"
       elif [[ "$query_type" == "insert" ]]; then
-        insert_table "${db_name}" "$query"
+        handle_insert_query "${db_name}" "$query"
       elif [[ "$query_type" == "update" ]]; then
         true
+      elif [[ "$query_type" == "drop" ]]; then
+        handle_drop_query "${db_name}" "$query"
       elif [[ "$query_type" == "delete" ]]; then
         handle_delete_query "${db_name}" "$query"
         true
@@ -104,8 +106,6 @@ connect () {
       # TODO: You are already connected. Exit the current one first.
       true
       # connect_database "${argument}"
-    elif [[ "${command}" == "drop" ]]; then
-      drop_table "${db_name}" "${argument}"
     elif [[ "${command}" == "clear" ]]; then
       clear
       echo "bashdb v1.0"

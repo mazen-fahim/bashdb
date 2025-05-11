@@ -3,7 +3,7 @@ source utils.sh
 
 # parameter 1: database name
 list_tables () {
-  db_name="$1"
+  local db_name="$1"
 
   declare -a headings=("Table Name" "Records Count")
   declare -A tb
@@ -30,24 +30,30 @@ list_tables () {
 # parameter 2: table name to drop
 # returns 4 if database name is not valid
 # returns 5 if table doesn't exisits
-drop_table() {
-  db_name="${1}"
-  tb_name="${2}"
-  check_name_validity "${tb_name}"
-  if [ "$?" -eq 0 ]; then
-    if [ -f "${dbms_dir}/${db_name}/${tb_name}" ]; then
-      rm "${dbms_dir}/${db_name}/${tb_name}"
-      rm "${dbms_dir}/${db_name}/_${tb_name}"
-      echo -e "${GREEN}Removed table ${tb_name}${NC}"
+handle_drop_query() {
+  local db_name="${1}"
+  local query="${2,,}"
+  local table_name
+
+  #                       -------------------------
+  # 1. will match this -> |drop table   table_name|
+  #                       -------------------------
+  local drop_table_pattern='^drop\s+table\s+([a-zA-Z]\w*)'
+
+  if [[ "$query" =~ $drop_table_pattern ]]; then
+    table_name="${BASH_REMATCH[1]}"
+    if [ -f "${dbms_dir}/${db_name}/${table_name}" ]; then
+      rm "${dbms_dir}/${db_name}/${table_name}"
+      rm "${dbms_dir}/${db_name}/_${table_name}"
+      echo -e "${GREEN}Removed table ${table_name}${NC}"
+      echo ""
     else
-      print_error 5 "${tb_name}"
+      print_error 5 "${table_name}"
       return 5
     fi
   else
-      print_error 4 "${tb_name}"
-      return 4
+    print_error 7
   fi
-  echo ""
 }
 
 # parameter 1: connected database name
@@ -117,6 +123,8 @@ handle_create_query() {
         touch "${dbms_dir}/${db_name}/${tb_name}"
         touch "${dbms_dir}/${db_name}/_${tb_name}"
         echo -e "$meta_table" > "${dbms_dir}/${db_name}/_${tb_name}"
+        echo -e "${GREEN}Table \"$tb_name\" was created${NC}"
+        echo ""
       else
         print_error 6 "${tb_name}"
         return 6
@@ -149,6 +157,39 @@ handle_create_query() {
   #   return 4
   # fi
   # echo ""
+}
+
+# parameter 1: database name
+# parameter 2: table name
+# parameter 3: column_count
+# parameter 4: column_names (array expanded)
+# parameter 5: values_count 
+# parameter 6: values (array expanded)
+
+check_data_types() {
+  local database_name="$1"
+  local table_name="$2"
+  local column_count="$3"
+
+  local values_count
+  declare -a column_names
+  declare -a values
+
+  local idx=4
+
+  for((i=0; i<column_count; i++));do
+    column_names+=("$idx")
+    ((idx++))
+  done
+
+  values_count="${idx}"
+  ((idx++))
+
+  for((i=0; i<values_count; i++));do
+    column_names+=("$idx")
+  done
+
+
 }
 
 # parameter 1: connected database name
@@ -188,16 +229,14 @@ handle_insert_query() {
   # 4. will match this -> |(  'value1', 123, '#2value2')|
   #                       -------------------------------
   local column_values_pattern="^\((\s*('[^']*'|\d+)\s*[,)])+"
-  quote="'"
 
-
-  local tb_name
+  local table_name
   declare -a matches
 
   query=$(trim_string "$query")
   echo "query input to 1st pattern: $query"
   if [[ "$query" =~ $insert_into_table_pattern ]]; then
-    tb_name="${BASH_REMATCH[1]}"
+    table_name="${BASH_REMATCH[1]}"
     query=$(sed -n -r "s/${insert_into_table_pattern}//p" <<< "$query")
   else
     echo "ana 2wl 7ta"
@@ -247,8 +286,21 @@ handle_insert_query() {
   fi
 
   #############################################
+  # local column_names="${matches[0]}"
+  local column_names="c1 c2 c3 c4"
+  local values="${matches[1]}"
 
-  echo "${matches[@]}"
+  awk '
+  BEGIN{
+    IFS=" "
+  }
+  {
+    for(i = 1; i < $#; i++){
+      print $i
+    }
+  }
+  ' <<< "$column_names"
+
 }
 
 
@@ -257,6 +309,8 @@ handle_insert_query() {
 # returns 4 if table name is not valid
 # returns 5 if table doesn't exisit
 # TODO: sql supports ; as end of statement (maybe support it)
+# TODO: make sure that anyname used in the query is not one of the 
+# sql language keywords.
 handle_delete_query() {
   local db_name="${1}"
   local query="${2,,}" # this handles if user entered query uppercase
@@ -314,8 +368,9 @@ handle_delete_query() {
   echo "Column Name:" "$column_name"
   echo "Logical Operator:" "$logical_operator"
   echo "Value" "$value"
-
 }
+
+
 
 
 
@@ -324,6 +379,6 @@ handle_delete_query() {
 
 # 2. insert (1 day: 4hours, )
 # 3. select (1 day)
-# 4. delete (1 day)
-# 5. update (1 day)
+# 4. delete (logic)
+# 5. update (syntax+logic)
 
