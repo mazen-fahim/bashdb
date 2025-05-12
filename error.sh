@@ -25,5 +25,11 @@ print_error () {
       echo -e "${RED}Err0x06: Table \"$info\" already exists${NC}"
   elif [ $err -eq 7 ]; then
       echo -e "${RED}Err0x07: Query syntax error. type \"help\" for help${NC}"
+  elif [ $err -eq 8 ]; then
+      echo -e "${RED}Err0x08: Number of columns doesn't equal number of values in insert query. type \"help\" for help${NC}"
+  elif [ $err -eq 9 ]; then
+      echo -e "${RED}Err0x09: Columns and values types don't match. type \"help\" for help${NC}"
+  elif [ $err -eq 10 ]; then
+      echo -e "${RED}Err0x10: Primary key value already exists for column \"$info\". type \"help\" for help${NC}"
   fi
 }

@@ -1,5 +1,6 @@
 #! /usr/bin/bash
 source utils.sh
+source table_helpers.sh
 
 # parameter 1: database name
 list_tables () {
@@ -16,7 +17,7 @@ list_tables () {
       # make sure that it's not the meta file
       if [[ "$tb_name" =~ ^[a-zA-Z][a-zA-Z0-9_]*$ ]]; then
         tb["$row,0"]="$tb_name"
-        tb["$row,1"]="$(cat "$dbms_dir"/"$db_name"/"$tb_name" | wc -l)"
+        tb["$row,1"]="$(($(cat "$dbms_dir"/"$db_name"/"$tb_name" | wc -l) - 1))"
         ((row++))
       fi
     fi
@@ -60,6 +61,7 @@ handle_drop_query() {
 # parameter 2: sql create query
 # returns 4 if table name is not valid
 # returns 6 if table already exisits
+# TODO: fix two primary keys at the same time in the creation query
 handle_create_query() {
   local db_name="${1}"
   local query="${2,,}"
@@ -123,6 +125,16 @@ handle_create_query() {
         touch "${dbms_dir}/${db_name}/${tb_name}"
         touch "${dbms_dir}/${db_name}/_${tb_name}"
         echo -e "$meta_table" > "${dbms_dir}/${db_name}/_${tb_name}"
+
+        # TODO: seperate this as a seperate helper function
+        place_holder=$(awk -F : '
+        {
+          print $1
+        }
+        ' < "${dbms_dir}/${db_name}/_${tb_name}" | tr '\n' ':')
+        place_holder=${place_holder%:}
+        echo -e "$place_holder" >> "${dbms_dir}/${db_name}/${tb_name}"
+
         echo -e "${GREEN}Table \"$tb_name\" was created${NC}"
         echo ""
       else
@@ -159,38 +171,6 @@ handle_create_query() {
   # echo ""
 }
 
-# parameter 1: database name
-# parameter 2: table name
-# parameter 3: column_count
-# parameter 4: column_names (array expanded)
-# parameter 5: values_count 
-# parameter 6: values (array expanded)
-
-check_data_types() {
-  local database_name="$1"
-  local table_name="$2"
-  local column_count="$3"
-
-  local values_count
-  declare -a column_names
-  declare -a values
-
-  local idx=4
-
-  for((i=0; i<column_count; i++));do
-    column_names+=("$idx")
-    ((idx++))
-  done
-
-  values_count="${idx}"
-  ((idx++))
-
-  for((i=0; i<values_count; i++));do
-    column_names+=("$idx")
-  done
-
-
-}
 
 # parameter 1: connected database name
 # parameter 2: sql create query
@@ -216,10 +196,9 @@ handle_insert_query() {
   local insert_into_table_pattern='^insert\s+into\s+([a-zA-Z]\w*)'
 
   #                       ------------------------
-  # 2. will match this -> |( c1, c2  , c3 , c5  )|
+  # 2. will match this -> |( c1, c2  , c3 , c5  ) val|
   #                       ------------------------
-  local column_names_pattern='^\((\s*([a-zA-Z]\w*)\s*[,)])+'
-
+  local column_names_pattern='^\((\s*([a-zA-Z]\w*)\s*(,|\)))+'
   #                       --------
   # 3. will match this -> |values|
   #                       --------
@@ -228,39 +207,33 @@ handle_insert_query() {
   #                       -------------------------------
   # 4. will match this -> |(  'value1', 123, '#2value2')|
   #                       -------------------------------
-  local column_values_pattern="^\((\s*('[^']*'|\d+)\s*[,)])+"
+  local column_values_pattern="^\((\s*('[^']*'|\d+)\s*(,|\)$))+"
 
   local table_name
   declare -a matches
 
   query=$(trim_string "$query")
-  echo "query input to 1st pattern: $query"
   if [[ "$query" =~ $insert_into_table_pattern ]]; then
     table_name="${BASH_REMATCH[1]}"
     query=$(sed -n -r "s/${insert_into_table_pattern}//p" <<< "$query")
   else
-    echo "ana 2wl 7ta"
     print_error 7
     return 7
   fi
 
   query=$(trim_string "$query")
-  echo "query input to 2nd pattern: $query"
   if [[ "$query" =~ $column_names_pattern ]]; then
     matches+=("${BASH_REMATCH[0]}")
     query=$(sed -n -r "s/${column_names_pattern}//p" <<< "$query")
   else
-    echo "ana column names"
     print_error 7
     return 7
   fi
 
   query=$(trim_string "$query")
-  echo "query input to 3rd pattern: $query"
   if [[ "$query" =~ $values_pattern ]]; then
     query=$(sed -n -r "s/${values_pattern}//p" <<< "$query")
   else
-    echo "ana klmt values"
     print_error 7
     return 7
   fi
@@ -268,38 +241,58 @@ handle_insert_query() {
   # we used grep here to compare against a query
   # that includes single quotes that make bash complain.
   query=$(trim_string "$query")
-  echo "query input to 4th pattern: $query"
   match=$(echo "$query" | grep -P "$column_values_pattern")
   if [[ -n "$match" ]]; then
     matches+=("$match")
     query=$(sed -n -r "s/$column_values_pattern//p" <<< "$query")
   else
-    echo "ana column values"
     print_error 7
     return 7
   fi
 
   if [[ -n "$query_content" ]]; then
-    echo "ana lsa fya klam"
     print_error 7
     return 7
   fi
 
-  #############################################
-  # local column_names="${matches[0]}"
-  local column_names="c1 c2 c3 c4"
-  local values="${matches[1]}"
+  ##########################################################################################
 
-  awk '
-  BEGIN{
-    IFS=" "
-  }
+  # column_names_matched_string="  c1   , c2   , c3 "
+  local column_names_matched_string="${matches[0]}"
+  column_names_matched_string=$(echo "$column_names_matched_string" | tr ')' ' ' | tr '(' ' ')
+
+  # values_matched_string="( 'value1' ,  123   , 'value  2' )"
+  local values_matched_string="${matches[1]}"
+
+
+  declare -a column_names=($(awk -F"," ' 
   {
-    for(i = 1; i < $#; i++){
+    for(i = 1; i <= NF; i++) {
       print $i
     }
   }
-  ' <<< "$column_names"
+  ' <<< "$column_names_matched_string"))
+
+  local values
+  tokenize_insert_values "$values_matched_string" values
+
+  check_data_types "${db_name}" "${table_name}" "${#column_names[@]}" "${column_names[@]}" "${#values[@]}" "${values[@]}"
+
+  if [ $? -eq 0 ]; then
+    local sz="${#column_names[@]}"
+    for((i = 0; i < sz; i++)); do
+      local column_name="${column_names[$i]}"
+      local value="${values[$i]}"
+      sed -i "\$s/${column_name}/${value}/" "${dbms_dir}/${db_name}/${table_name}"
+    done
+    place_holder=$(awk -F : '
+    {
+      print $1
+    }
+    ' < "${dbms_dir}/${db_name}/_${table_name}" | tr '\n' ':')
+    place_holder=${place_holder%:}
+    echo -e "$place_holder" >> "${dbms_dir}/${db_name}/${table_name}"
+  fi
 
 }
 
