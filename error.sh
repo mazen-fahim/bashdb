@@ -31,5 +31,11 @@ print_error () {
       echo -e "${RED}Err0x09: Columns and values types don't match. type \"help\" for help${NC}"
   elif [ $err -eq 10 ]; then
       echo -e "${RED}Err0x10: Primary key value already exists for column \"$info\". type \"help\" for help${NC}"
+  elif [ $err -eq 11 ]; then
+      echo -e "${RED}Err0x11: Column \"$info\" doesn't exist. type \"help\" for help${NC}"
+  elif [ $err -eq 12 ]; then
+      echo -e "${RED}Err0x12: Column \"$info\" name is invalid. type \"help\" for help${NC}"
+  elif [ $err -eq 13 ]; then
+      echo -e "${RED}Err0x13: You can't have "*" with other column names in select query. type \"help\" for help${NC}"
   fi
 }

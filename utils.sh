@@ -158,3 +158,22 @@ trim_string() {
 }
 
 
+# parameter 1: the name to check
+# returns 0: if the name is valid
+# returns 1: if the name is invalid
+# A special case where the column name is only * 
+# this function returns successfully
+check_name_validity() {
+  reg_exp='^[a-zA-Z][a-zA-Z0-9_]*$'
+  name="$1"
+
+  if [[ "${name}" == '*' ]]; then
+    return 0;
+  fi
+
+  if [[ "${name}" =~ $reg_exp ]]; then
+    return 0
+  else
+    return 1
+  fi
+}

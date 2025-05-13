@@ -12,43 +12,6 @@
 
 
 
-declare -A arr=(
-  ["0,0"]="v" 
-  ["1,0"]="v" 
-  ["2,0"]="v" 
-  ["3,0"]="v" 
-  ["4,0"]="v" 
-  ["5,0"]="v"
-
-  ["0,1"]="v1" 
-  ["1,1"]="v11" 
-  ["2,1"]="v123" 
-  ["3,1"]="v10" 
-  ["4,1"]="v11" 
-  ["5,1"]="v1"
-
-  ["0,2"]="v1" 
-  ["1,2"]="v11" 
-  ["2,2"]="v12" 
-  ["3,2"]="v10" 
-  ["4,2"]="v1asdjf;asjals;jdf;jfsadl;jl;asfjd;ljfasdk;j;lkafjds;ljasd;lfj;kladsfj;sajfdfsadk;lj;kalsdjd1" 
-  ["5,2"]="v1"
-
-  ["0,3"]="v1" 
-  ["1,3"]="v11" 
-  ["2,3"]="v123" 
-  ["3,3"]="v10" 
-  ["4,3"]="v11" 
-  ["5,3"]="v1"
-
-  ["0,4"]="v111111111111111" 
-  ["1,4"]="v11" 
-  ["2,4"]="v123" 
-  ["3,4"]="v10" 
-  ["4,4"]="v11" 
-  ["5,4"]="v1"
-)
-
 # parameter 1: the number of cols in the table
 # parameter 2: the number of records in the table
 # parameter 3: an array containg the table heading

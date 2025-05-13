@@ -40,18 +40,6 @@ remove_elem_from_arr () {
 }
 
 
-# parameter 1: the name to check
-# returns 0: if the name is valid
-# returns 1: if the name is invalid
-check_name_validity() {
-  reg_exp='^[a-zA-Z][a-zA-Z0-9_]*$'
-  name="$1"
-  if [[ "${name}" =~ $reg_exp ]]; then
-    return 0
-  else
-    return 1
-  fi
-}
 
 list_databases () {
   declare -a headings=("#" "Database Name" "Table Count")
@@ -79,20 +67,18 @@ connect () {
     read -p "bashdb@${db_name} > " command argument
     if [[ "${command}" == "query" ]]; then
       query="$argument"
-      query_type="$(cut -f1 -d" " <<< $argument)"
-      if [[ "$query_type" == "create" ]]; then
+      if [[ "$query" =~ ^create* ]]; then
         handle_create_query "${db_name}" "$query"
-      elif [[ "$query_type" == "insert" ]]; then
+      elif [[ "$query" =~ ^insert* ]]; then
         handle_insert_query "${db_name}" "$query"
-      elif [[ "$query_type" == "update" ]]; then
+      elif [[ "$query" =~ ^update* ]]; then
         true
-      elif [[ "$query_type" == "drop" ]]; then
+      elif [[ "$query" =~ ^drop* ]]; then
         handle_drop_query "${db_name}" "$query"
-      elif [[ "$query_type" == "delete" ]]; then
+      elif [[ "$query" =~ ^delete* ]]; then
         handle_delete_query "${db_name}" "$query"
-        true
-      elif [[ "$query_type" == "select" ]]; then
-        true
+      elif [[ "$query" =~ ^select* ]]; then
+        handle_select_query "${db_name}" "$query"
       else
         print_error 7
      fi
