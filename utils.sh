@@ -45,7 +45,14 @@ print_table () {
 
   # TODO: what is eval?
   local offset=$((2+$1+1)) # p1, p2, c1, c2, c3, ..., cn, >array<
-  eval "declare -A table_data="${!offset#*=}
+  # If there is no equal in the output of the command
+  # $(decalare -p array) then the associative array
+  # that was passed is actually empty!
+  if [[ ! "${!offset#*=}" =~ = ]]; then
+    eval declare -A table_data
+  else
+    eval "declare -A table_data="${!offset#*=}
+  fi
 
   # initialize table heading array
   for ((i = 0, j = 3; i < table_cols; i++, j++)); do
@@ -119,6 +126,10 @@ print_table () {
 
   #==========   PRINT THE TABLE DATA      ==============================
 
+  # WHAT IF TABLE DATA IS EMPTY???
+  
+  
+  
   # PRINT THE TABLE DATA
   for ((i=0; i < table_rows; i++)); do
     for ((j=0; j < table_cols; j++));do

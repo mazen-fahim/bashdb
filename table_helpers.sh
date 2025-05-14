@@ -8,6 +8,14 @@
 #
 source utils.sh
 
+# parameter 1: the string to trim
+remove_leading_trailing_whitespaces(){
+  str="$1"
+  str="${str%"${str##*[![:space:]]}"}"
+  str="${str#"${str%%[![:space:]]*}"}"
+  echo "$str"
+}
+
 tokenize_column_names(){
 str="$1"
 sz="${#str}"
@@ -19,7 +27,7 @@ accum=""
 for((i=0; i < sz; i++)); do
   char="${str:$i:1}"
 
-  # ( c1,  * , c2 , c4 )
+  # ( c1,  * , c2 , c4  asdf )
 
   if [[ "$char" == "," ]]; then
     accum="${accum%"${accum##*[![:space:]]}"}"
@@ -54,13 +62,12 @@ if [[ -n "$accum" ]]; then
   accum="${accum%"${accum##*[![:space:]]}"}"
   accum="${accum#"${accum%%[![:space:]]*}"}"
 
-  echo "${#accum}"
-
   arr+=("$accum")
 fi
 
 }
 
+# ( 123 ,  'mazen' , 123 , 'asd asd asd' )
 tokenize_values(){
 str="$1"
 sz="${#str}"
@@ -124,9 +131,8 @@ check_columns_values_count(){
 
 # parameter 1: column_count
 # parameter 2: column_names (array expanded)
-# returns 11: if column doesn't exsist
 # returns 12: if column name is invalid
-check_columns_names(){
+check_columns_name_validity(){
   # GET ARGUMENTS
   local column_count="$1"
   declare -a column_names
@@ -142,6 +148,46 @@ check_columns_names(){
     fi
   done
 
+  return 0
+}
+
+# parameter 1: database name
+# parameter 2: table name
+# parameter 3: column_count
+# parameter 4: column_names (array expanded)
+# returns 11: if a column doesn't exsist
+check_columns_existence(){
+  # GET ARGUMENTS
+  local idx=1
+  local database_name="${!idx}" # $idx -> 1 . $1 -> argument
+  ((idx++))
+  local table_name="${!idx}"
+  ((idx++))
+  local column_count="${!idx}"
+  ((idx++))
+  declare -a column_names
+  for((i=0; i<column_count; i++));do
+    column_names+=("${!idx}")
+    ((idx++))
+  done
+  local meta_table_path="${dbms_dir}/${database_name}/_${table_name}"
+
+
+  for((i=0; i < column_count; i++)); do
+    local column_name="${column_names[$i]}"
+    local does_column_exist="false"
+    does_column_exist=$(awk -F : -v column_name="${column_name}" ' 
+    {
+      if($1 == column_name){
+        print "true"
+      }
+    }
+    ' < "${meta_table_path}")
+    if [[ "$does_column_exist" != "true" ]]; then
+      print_error 11 "$column_name"
+      return 11
+    fi
+  done
   return 0
 }
 

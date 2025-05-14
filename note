@@ -3,28 +3,22 @@
 - [x] create syntax
 - [ ] create logic
 
-=================================
 
-2
-- [ ] delete syntax
-- [ ] delete logic
-- [ ] delete (where clause)
-
-
-3
 - [ ] update syntax
 - [ ] update logic
 - [ ] update (where clause)
-
+=================================
 
 - [x] drop syntax
 - [x] drop logic
 
-
-- [x] insert syntax
+- [x] insert syntax (gives me an error when i end with number.)
 - [x] insert logic
-
 
 - [x] select syntax
 - [x] select logic
-- [ ] select (where clause)
+- [x] select (where clause)
+
+- [x] delete syntax
+- [x] delete logic
+- [x] delete (where clause)

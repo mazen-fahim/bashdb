@@ -42,16 +42,17 @@ remove_elem_from_arr () {
 
 
 list_databases () {
-  declare -a headings=("#" "Database Name" "Table Count")
+  declare -a headings=("Database Name" "Table Count")
   declare -A table
   row=0
   for db in "$dbms_dir"/*; do
+    if [[ ! -d "$db" ]]; then continue; fi
     local db_name=$(sed -n "s+${dbms_dir}/++gp" <<< $db)
     # local db_name="${db##*/}"
 
-    table["$row,0"]=$((row+1)) # numbers used to list the present databases
-    table["$row,1"]="$db_name" # the name of the data base
-    table["$row,2"]=$(($(ls -1 ${dbms_dir}/${db_name} | wc -l) / 2)) # number of tables inside the database
+    # table["$row,0"]=$((row+1)) # numbers used to list the present databases
+    table["$row,0"]="$db_name" # the name of the data base
+    table["$row,1"]=$(($(ls -1 ${dbms_dir}/${db_name} | wc -l) / 2)) # number of tables inside the database
 
     ((row++))
   done
@@ -64,44 +65,37 @@ list_databases () {
 connect () {
   db_name="$1"
   while true; do
-    read -p "bashdb@${db_name} > " command argument
-    if [[ "${command}" == "query" ]]; then
-      query="$argument"
-      if [[ "$query" =~ ^create* ]]; then
-        handle_create_query "${db_name}" "$query"
-      elif [[ "$query" =~ ^insert* ]]; then
-        handle_insert_query "${db_name}" "$query"
-      elif [[ "$query" =~ ^update* ]]; then
-        true
-      elif [[ "$query" =~ ^drop* ]]; then
-        handle_drop_query "${db_name}" "$query"
-      elif [[ "$query" =~ ^delete* ]]; then
-        handle_delete_query "${db_name}" "$query"
-      elif [[ "$query" =~ ^select* ]]; then
-        handle_select_query "${db_name}" "$query"
-      else
-        print_error 7
-     fi
-    elif [[ "${command}" == "ls" ]]; then
-      list_tables "${db_name}"
-
-    elif [[ "${command}" == "help" ]]; then
-      show_help
-
-    elif [[ "${command}" == "connect" ]]; then
-      # TODO: You are already connected. Exit the current one first.
+    read -e -p "bashdb@${db_name} > " input
+    if [[ "$input" =~ ^create* ]]; then
+      handle_create_query "${db_name}" "$input"
+    elif [[ "$input" =~ ^insert* ]]; then
+      handle_insert_query "${db_name}" "$input"
+    elif [[ "$input" =~ ^update* ]]; then
       true
-      # connect_database "${argument}"
-    elif [[ "${command}" == "clear" ]]; then
+    elif [[ "$input" =~ ^drop* ]]; then
+      handle_drop_query "${db_name}" "$input"
+    elif [[ "$input" =~ ^delete* ]]; then
+      handle_delete_query "${db_name}" "$input"
+    elif [[ "$input" =~ ^select* ]]; then
+      handle_select_query "${db_name}" "$input"
+    elif [[ "${input}" =~ ^connect* ]]; then
+      print_error 15 "$db_name"
+
+    elif [[ "${input}" =~ ^ls$ ]]; then
+      list_tables "${db_name}"
+    elif [[ "${input}" =~ ^help$ ]]; then
+      show_help
+    elif [[ "${input}" =~ ^clear$ ]]; then
       clear
       echo "bashdb v1.0"
       echo "Type \"help\" for help"
       echo ""
-    elif [[ "${command}" == "exit" ]]; then
+    elif [[ "${input}" =~ ^exit$ ]]; then
       echo -e "${GREEN}Exited from database \"${db_name}\"${NC}"
+      echo ""
       return 0
     else
-      print_error "0" "${command}"
+      print_error "0" "${input}"
     fi
 
   done
@@ -207,27 +201,35 @@ run () {
   echo "bashdb v1.0"
   echo "Type \"help\" for help"
   echo ""
+
+  local connect_command_pattern="^connect\s+([a-zA-Z][a-zA-Z0-9_ ]*)"
+  local drop_command_pattern="^drop\s+([a-zA-Z][a-zA-Z0-9_ ]*)"
+  local create_command_pattern="^create\s+([a-zA-Z][a-zA-Z0-9_ ]*)"
+
   while true; do
-    read -p "bashdb@# > " command argument
-    if [[ "${command}" == "help" ]]; then
+    read -e -p "bashdb@# > " input
+    if [[ "${input}" =~ ^help$ ]]; then
       show_help
-    elif [[ "${command}" == "ls" ]]; then
-        list_databases
-    elif [[ "${command}" == "connect" ]]; then
-      connect_database "${argument}"
-    elif [[ "${command}" == "create" ]]; then
-      create_database "${argument}"
-    elif [[ "${command}" == "drop" ]]; then
-      drop_database "${argument}"
-    elif [[ "${command}" == "clear" ]]; then
+    elif [[ "${input}" =~ ^ls$ ]]; then
+      list_databases
+    elif [[ "${input}" =~  $connect_command_pattern ]]; then
+      local database_name="${BASH_REMATCH[1]}"
+      connect_database "$database_name"
+    elif [[ "${input}" =~ $create_command_pattern ]]; then
+      local database_name="${BASH_REMATCH[1]}"
+      create_database "$database_name"
+    elif [[ "${input}" =~ $drop_command_pattern ]]; then
+      local database_name="${BASH_REMATCH[1]}"
+      drop_database "$database_name"
+    elif [[ "${input}" == "clear" ]]; then
       clear
       echo "bashdb v1.0"
       echo "Type \"help\" for help"
       echo ""
-    elif [[ "${command}" == "exit" ]]; then
+    elif [[ "${input}" == "exit" ]]; then
       exit 0
     else
-      print_error "0" "${command}"
+      print_error "0" "${input}"
     fi
   done
 }

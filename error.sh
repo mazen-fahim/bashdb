@@ -37,5 +37,9 @@ print_error () {
       echo -e "${RED}Err0x12: Column \"$info\" name is invalid. type \"help\" for help${NC}"
   elif [ $err -eq 13 ]; then
       echo -e "${RED}Err0x13: You can't have "*" with other column names in select query. type \"help\" for help${NC}"
+  elif [ $err -eq 14 ]; then
+      echo -e "${RED}Err0x14: You can't use logical operator \"$info\" with type varchar. You can only use "=" and "!=". type \"help\" for help${NC}"
+  elif [ $err -eq 15 ]; then
+      echo -e "${RED}Err0x15: You are already connected to database \"$info\". Exit first if you want to connect to another one.type \"help\" for help${NC}"
   fi
 }
