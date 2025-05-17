@@ -41,5 +41,9 @@ print_error () {
       echo -e "${RED}Err0x14: You can't use logical operator \"$info\" with type varchar. You can only use "=" and "!=". type \"help\" for help${NC}"
   elif [ $err -eq 15 ]; then
       echo -e "${RED}Err0x15: You are already connected to database \"$info\". Exit first if you want to connect to another one.type \"help\" for help${NC}"
+  elif [ $err -eq 16 ]; then
+      echo -e "${RED}Err0x16: You can't have multiple primary keys in the same table. Type \"help\" for help${NC}"
+  elif [ $err -eq 17 ]; then
+      echo -e "${RED}Err0x17: You can't have multiple columns with the same name \"$info\". Type \"help\" for help${NC}"
   fi
 }

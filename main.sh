@@ -3,14 +3,20 @@
 # Author: Mazen Fahim
 # File: main.sh
 
-
 #include other files
 # i run them as souce because i want their return values $? to be seen in
 # here the main script
 source utils.sh
 source color.sh
-source table.sh
 source error.sh
+
+source create_query.sh
+source insert_query.sh
+source delete_query.sh
+source update_query.sh
+source select_query.sh
+source drop_query.sh
+source list_tables.sh
 
 # a global list of all databases created so far.
 LC_COLLATE=C
