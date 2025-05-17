@@ -540,3 +540,128 @@ check_repeated_column_name(){
   done
   return 0
 }
+
+
+tokenize_column_names_and_values() {
+    str="$1"
+    sz="${#str}"
+    local -n arr=$2  
+
+    inside_value="false"
+    inside_quotes="false"
+    accum=""
+
+    for ((i=0; i<sz; i++)); do
+        char="${str:$i:1}"
+
+        # Handle comma separator
+        if [[ "$char" == "," && "$inside_quotes" == "false" ]]; then
+            # Trim whitespace and add to array
+            accum="${accum%"${accum##*[![:space:]]}"}"
+            accum="${accum#"${accum%%[![:space:]]*}"}"
+            arr+=("$accum")
+            accum=""
+            inside_value="false"
+            continue
+        fi
+
+        # Handle equals sign (only outside quotes)
+        if [[ "$char" == "=" && "$inside_quotes" == "false" ]]; then
+            # Trim and add the column name
+            accum="${accum%"${accum##*[![:space:]]}"}"
+            accum="${accum#"${accum%%[![:space:]]*}"}"
+            arr+=("$accum")
+            accum=""
+            inside_value="true"  # Next part will be a value
+            continue
+        fi
+
+        # Handle quotes
+        if [[ "$char" == "'" ]]; then
+            inside_quotes=$([[ "$inside_quotes" == "true" ]] && echo "false" || echo "true")
+            accum+="$char"
+            continue
+        fi
+
+        # Skip formatting characters when not in a value
+        if [[ "$inside_value" == "false" && "$inside_quotes" == "false" ]]; then
+            if [[ "$char" == " " || "$char" == "(" || "$char" == ")" ]]; then
+                continue
+            fi
+        fi
+
+        # Add character to accumulator
+        accum+="$char"
+    done
+
+    # Add the last accumulated value if exists
+    if [[ -n "$accum" ]]; then
+        accum="${accum%)}" 
+        accum="${accum%"${accum##*[![:space:]]}"}"  
+        accum="${accum#"${accum%%[![:space:]]*}"}"  
+        arr+=("$accum")
+    fi
+
+  #this will print an array of the column names and values
+  # c1 5 c2 're'
+}
+
+
+extract_column_names() {
+    local -n source_arr=$1  
+    local -n dest_arr=$2    
+    
+    # Clear destination array
+    dest_arr=()
+    
+    # Column names are every even-indexed element (0, 2, 4...)
+    for ((i=0; i<${#source_arr[@]}; i+=2)); do
+        dest_arr+=("${source_arr[i]}")
+    done
+}
+
+# Validation function matching your preferred style
+check_columns_name_validity() {
+    local count=$1
+    shift
+    local invalid=0
+
+    for ((i=1; i<=$count; i++)); do
+        col_name="${!i}"
+        if [[ ! "$col_name" =~ $name_pattern ]] then
+            echo "Invalid column name: '$col_name'"
+            invalid=1
+        fi
+    done
+
+    return $invalid
+}
+
+extract_column_value() {
+    local -n source_arr=$1  
+    local -n dest_arr=$2    
+    
+    # Clear destination array
+    dest_arr=()
+    
+    # Column values are every odd-indexed element (1, 3, 5...)
+    for ((i=1; i<${#source_arr[@]}; i+=2)); do
+        dest_arr+=("${source_arr[i]}")
+    done
+}
+
+check_columns_values_validity() {
+    local count=$1
+    shift
+    local invalid=0
+
+    for ((i=1; i<=$count; i++)); do
+        col_value="${!i}"
+        if [[ ! "$col_value" =~ $value_pattern ]] then
+            echo "Invalid column value: '$col_value'"
+            invalid=1
+        fi
+    done
+
+    return $invalid
+}

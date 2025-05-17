@@ -72,6 +72,7 @@ connect () {
   db_name="$1"
   while true; do
     read -e -p "bashdb@${db_name} > " input
+    input="${input,,}"
     if [[ "$input" =~ ^create* ]]; then
       handle_create_query "${db_name}" "$input"
     elif [[ "$input" =~ ^insert* ]]; then
@@ -214,6 +215,7 @@ run () {
 
   while true; do
     read -e -p "bashdb@# > " input
+    input="${input,,}"
     if [[ "${input}" =~ ^help$ ]]; then
       show_help
     elif [[ "${input}" =~ ^ls$ ]]; then

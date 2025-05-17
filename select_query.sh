@@ -42,7 +42,7 @@ handle_select_query() {
   #                       --------------------------------------
   # 4. will match this -> | where  column  name  >  ' value '  |
   #                       --------------------------------------
-  local where_pattern="^([a-zA-Z][a-zA-Z0-9_ ]*)[[:space:]]*(>=|<=|!=|=|>|<)[[:space:]]*('[^']*'|[0-9]+)"
+  local where_pattern="^($name_pattern)[[:space:]]*(>=|<=|!=|=|>|<)[[:space:]]*($value_pattern)"
 
   ###############  1. CECHK SYNTAX  #########################
  query=$(remove_leading_trailing_whitespaces "$query")
