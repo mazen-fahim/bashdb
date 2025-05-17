@@ -4,7 +4,7 @@
 - [ ] create logic
 
 
-- [ ] update syntax
+- [x] update syntax
 - [ ] update logic
 - [ ] update (where clause)
 =================================
@@ -22,3 +22,6 @@
 - [x] delete syntax
 - [x] delete logic
 - [x] delete (where clause)
+
+=================================
+'it's'=> as a value for a $value_pattern

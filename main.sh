@@ -71,7 +71,7 @@ connect () {
     elif [[ "$input" =~ ^insert* ]]; then
       handle_insert_query "${db_name}" "$input"
     elif [[ "$input" =~ ^update* ]]; then
-      true
+      handel_update_query "${db_name}" "$input"
     elif [[ "$input" =~ ^drop* ]]; then
       handle_drop_query "${db_name}" "$input"
     elif [[ "$input" =~ ^delete* ]]; then
