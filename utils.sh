@@ -498,8 +498,6 @@ check_primary_key(){
     if [[ "${column_name}" == "${primary_key_column_name}" ]]; then
       # logic check that the value doesn't already exsist.
       local result
-      echo "EL COLUMN PTA3 EL PRIMARY KEY MWGOOD FE EL 5ANA RKM $primary_key_column_field_number"
-      echo "WE EL KEMA ELY 3AYZ A7OTHA FEH = $value"
       result=$(awk -F : -v primary_key_column_field_number="$primary_key_column_field_number" -v value="$value" '
       BEGIN{
         current_value=0
@@ -511,7 +509,6 @@ check_primary_key(){
         }
       }
       ' < "${dbms_dir}/${db_name}/${table_name}")
-      echo "ANA EL RESULE= $result"
 
       if [[ "$result" == "already_exists" ]]; then
         print_error 10 "$column_name"
@@ -534,7 +531,7 @@ check_repeated_column_name(){
     if [[ -z "${freq[$elem]}" ]]; then
       freq["$elem"]=1
     else
-      echo "$elem"
+      print_error 17 "$elem"
       return 17
     fi
   done
@@ -620,23 +617,6 @@ extract_column_names() {
     done
 }
 
-# Validation function matching your preferred style
-check_columns_name_validity() {
-    local count=$1
-    shift
-    local invalid=0
-
-    for ((i=1; i<=$count; i++)); do
-        col_name="${!i}"
-        if [[ ! "$col_name" =~ $name_pattern ]] then
-            echo "Invalid column name: '$col_name'"
-            invalid=1
-        fi
-    done
-
-    return $invalid
-}
-
 extract_column_value() {
     local -n source_arr=$1  
     local -n dest_arr=$2    
@@ -648,20 +628,4 @@ extract_column_value() {
     for ((i=1; i<${#source_arr[@]}; i+=2)); do
         dest_arr+=("${source_arr[i]}")
     done
-}
-
-check_columns_values_validity() {
-    local count=$1
-    shift
-    local invalid=0
-
-    for ((i=1; i<=$count; i++)); do
-        col_value="${!i}"
-        if [[ ! "$col_value" =~ $value_pattern ]] then
-            echo "Invalid column value: '$col_value'"
-            invalid=1
-        fi
-    done
-
-    return $invalid
 }

@@ -1,13 +1,10 @@
+- [ ] [ Don't force the user to enter a where clause ]
+- [ ] repeated columns. check where it is appropriate and where it is not.
 
-1
-- [x] create syntax
-- [ ] create logic
-
-
-- [x] update syntax
-- [ ] update logic
-- [ ] update (where clause)
 =================================
+- [x] update syntax
+- [x] update logic
+- [x] update (where clause) 
 
 - [x] drop syntax
 - [x] drop logic
@@ -23,5 +20,7 @@
 - [x] delete logic
 - [x] delete (where clause)
 
+- [x] create syntax
+- [x] create logic
+
 =================================
-'it's'=> as a value for a $value_pattern

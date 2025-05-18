@@ -45,5 +45,9 @@ print_error () {
       echo -e "${RED}Err0x16: You can't have multiple primary keys in the same table. Type \"help\" for help${NC}"
   elif [ $err -eq 17 ]; then
       echo -e "${RED}Err0x17: You can't have multiple columns with the same name \"$info\". Type \"help\" for help${NC}"
+  elif [ $err -eq 18 ]; then
+      echo -e "${RED}Err0x18: You can't update the primary key column \"$info\" for multiple records with the same value. Type \"help\" for help${NC}"
   fi
+
+  return 0
 }
