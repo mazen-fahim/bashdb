@@ -66,9 +66,13 @@ handel_update_query(){
     print_error 7
     return 7
   fi
+  local where_found="true"
+  if [[ -z $query ]]; then
+    where_found="false"
+  fi
 
   query=$(remove_leading_trailing_whitespaces "$query")
-  if [[ "$query" =~ $where_pattern ]]; then
+  if [[ "$where_found" == "true" && "$query" =~ $where_pattern  ]]; then
     where_column_name="$(remove_leading_trailing_whitespaces "${BASH_REMATCH[1]}")"
     where_logical_operator="$(remove_leading_trailing_whitespaces "${BASH_REMATCH[2]}")"
     where_value="$(remove_leading_trailing_whitespaces "${BASH_REMATCH[3]}")"
