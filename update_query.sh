@@ -61,33 +61,34 @@ handel_update_query(){
     update_matched_paren="$(remove_leading_trailing_whitespaces "${BASH_REMATCH[0]}")"
     query=$(sed -n -r "s/${column_names_values_pattern}//p" <<< "$query")
   else
-
-    echo "ana 2 ${query}"
     print_error 7
     return 7
   fi
+
   local where_found="true"
   if [[ -z $query ]]; then
     where_found="false"
   fi
 
   query=$(remove_leading_trailing_whitespaces "$query")
-  if [[ "$where_found" == "true" && "$query" =~ $where_pattern  ]]; then
-    where_column_name="$(remove_leading_trailing_whitespaces "${BASH_REMATCH[1]}")"
-    where_logical_operator="$(remove_leading_trailing_whitespaces "${BASH_REMATCH[2]}")"
-    where_value="$(remove_leading_trailing_whitespaces "${BASH_REMATCH[3]}")"
-    query=$(sed -n -r "s/${where_pattern}//p" <<< "$query")
-  else
-    echo "ana 2 ${query}"
-    print_error 7
-    return 7
+  if [[ "$where_found" == "true" ]]; then
+    if [[ "$query" =~ $where_pattern  ]]; then
+      where_column_name="$(remove_leading_trailing_whitespaces "${BASH_REMATCH[1]}")"
+      where_logical_operator="$(remove_leading_trailing_whitespaces "${BASH_REMATCH[2]}")"
+      where_value="$(remove_leading_trailing_whitespaces "${BASH_REMATCH[3]}")"
+      query=$(sed -n -r "s/${where_pattern}//p" <<< "$query")
+    else
+      echo "ana 2 ${query}"
+      print_error 7
+      return 7
+    fi
   fi
 
   if [[ -n "$query" ]]; then
     print_error 7
     return 7
   fi
-  
+
   local table_path="${dbms_dir}/${database_name}/${table_name}"
   local meta_table_path="${dbms_dir}/${database_name}/_${table_name}"
 
@@ -113,9 +114,15 @@ handel_update_query(){
   extract_column_names tokenized_data column_names
   extract_column_value tokenized_data column_values
 
+
   #################### 5. CHECK COLUMN NAMES VALIDITY   ####################
   check_columns_name_validity "${#column_names[@]}" "${column_names[@]}"
   if [ ! "$?" -eq 0 ]; then return "$?"; fi
+
+  if [[ "$where_found" == "true" ]]; then
+    check_columns_name_validity "1" "$where_column_name"
+    if [ ! "$?" -eq 0 ]; then return "$?"; fi
+  fi
 
   ####################  6. CHECK COLUMN NAMES EXISTENCE  ####################
   check_columns_existence "$database_name" "$table_name" "${#column_names[@]}" "${column_names[@]}"
@@ -184,38 +191,47 @@ handel_update_query(){
 
 
   # only keep the records that didn't pass the where condition in the main table.
-  awk -F : -v where_column_number="$where_column_number" -v where_logical_operator="$where_logical_operator" -v where_value="$where_value" '
-  NR == FNR { total = NR; next }        # First pass: count total lines
-  FNR == total { next }                 # Second pass: skip the last line
-  {
-    if (where_logical_operator == ">=" && $where_column_number >= where_value) next
-    else if (where_logical_operator == "<=" && $where_column_number <= where_value) next
-    else if (where_logical_operator == "!=" && $where_column_number != where_value) next
-    else if (where_logical_operator == "="  && $where_column_number == where_value) next
-    else if (where_logical_operator == ">"  && $where_column_number > where_value) next
-    else if (where_logical_operator == "<"  && $where_column_number < where_value) next
-    print
-  }
-  ' "$table_path" "$table_path" > "${table_path}.tmp1" 
+  if [[ "$where_found" == "true" ]]; then
+    awk -F : -v where_column_number="$where_column_number" -v where_logical_operator="$where_logical_operator" -v where_value="$where_value" '
+    NR == FNR { total = NR; next }        # First pass: count total lines
+    FNR == total { next }                 # Second pass: skip the last line
+    {
+      if (where_logical_operator == ">=" && $where_column_number >= where_value) next
+      else if (where_logical_operator == "<=" && $where_column_number <= where_value) next
+      else if (where_logical_operator == "!=" && $where_column_number != where_value) next
+      else if (where_logical_operator == "="  && $where_column_number == where_value) next
+      else if (where_logical_operator == ">"  && $where_column_number > where_value) next
+      else if (where_logical_operator == "<"  && $where_column_number < where_value) next
+      print
+    }
+    ' "$table_path" "$table_path" > "${table_path}.tmp1" 
+  else
+    touch "${table_path}.tmp1"
+  fi
 
   # Seperate all record that passed the where condition into a seperate .tmp file.
-  awk -F : -v where_column_number="$where_column_number" -v where_logical_operator="$where_logical_operator" -v where_value="$where_value" '
-  NR == FNR { total = NR; next }        # First pass: count total lines
-  FNR == total { next }                 # Second pass: skip the last line
-  {
-    if (where_logical_operator == ">=" && $where_column_number >= where_value) {
-      print
-      $0=""
+  if [[ "$where_found" == "true" ]]; then
+    awk -F : -v where_column_number="$where_column_number" -v where_logical_operator="$where_logical_operator" -v where_value="$where_value" '
+    NR == FNR { total = NR; next }        # First pass: count total lines
+    FNR == total { next }                 # Second pass: skip the last line
+    {
+      if (where_logical_operator == ">=" && $where_column_number >= where_value) {
+        print
+        $0=""
+      }
+      else if (where_logical_operator == "<=" && $where_column_number <= where_value) {
+        print
+      }
+      else if (where_logical_operator == "!=" && $where_column_number != where_value) print
+      else if (where_logical_operator == "="  && $where_column_number == where_value) print
+      else if (where_logical_operator == ">"  && $where_column_number > where_value) print
+      else if (where_logical_operator == "<"  && $where_column_number < where_value) print
     }
-    else if (where_logical_operator == "<=" && $where_column_number <= where_value) {
-      print
-    }
-    else if (where_logical_operator == "!=" && $where_column_number != where_value) print
-    else if (where_logical_operator == "="  && $where_column_number == where_value) print
-    else if (where_logical_operator == ">"  && $where_column_number > where_value) print
-    else if (where_logical_operator == "<"  && $where_column_number < where_value) print
-  }
-  ' "$table_path" "$table_path" > "${table_path}.tmp2"
+    ' "$table_path" "$table_path" > "${table_path}.tmp2"
+  else
+    cp "$table_path" "${table_path}.tmp2"
+    sed -i '$d' "${table_path}.tmp2"
+  fi
 
   local number_of_records_passed_condition="$(cat "${table_path}.tmp2" | wc -l)"
   # This number must be 1 if the primary key column is one of the columns

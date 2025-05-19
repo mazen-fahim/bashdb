@@ -116,6 +116,8 @@ handle_insert_query() {
   if [ ! "$?" -eq 0 ]; then return "$?"; fi
   check_columns_name_validity "${#column_names[@]}" "${column_names[@]}"
   if [ ! "$?" -eq 0 ]; then return "$?"; fi
+  check_repeated_column_name "${column_names[@]}"
+  if [ ! "$?" -eq 0 ]; then return "$?"; fi
   check_columns_existence "$database_name" "$table_name" "${#column_names[@]}" "${column_names[@]}"
   if [ ! "$?" -eq 0 ]; then return "$?"; fi
   check_data_types "${database_name}" "${table_name}" "${#column_names[@]}" "${column_names[@]}" "${#values[@]}" "${values[@]}"

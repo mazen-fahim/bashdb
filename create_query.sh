@@ -102,12 +102,8 @@ handle_create_query() {
   if [ ! "$?" -eq 0 ]; then return "$?"; fi
 
   ###### 11. CHECK IF A COLUMN NAME WAS repeated ###############################
-  local repeated_name
-  repeated_name=$(check_repeated_column_name "${column_names[@]}")
-  if [ ! "$?" -eq 0 ]; then 
-    print_error 17 "$repeated_name"
-    return "$?"
-  fi
+  check_repeated_column_name "${column_names[@]}"
+  if [ ! "$?" -eq 0 ]; then return "$?"; fi
 
   ###### 12. CHECK MULTIPLE PRIMARY KEYS #######################################
   if [[ ${#column_primary_keys[@]} > 1 ]]; then

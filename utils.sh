@@ -539,6 +539,13 @@ check_repeated_column_name(){
 }
 
 
+# ( c   1 = 1 2 3  , c2  = ' va, =lue ' )
+#
+# c   1
+# 1 2 3
+# c2
+# ' va, =lue '
+#
 tokenize_column_names_and_values() {
     str="$1"
     sz="${#str}"
@@ -552,6 +559,7 @@ tokenize_column_names_and_values() {
         char="${str:$i:1}"
 
         # Handle comma separator
+        # this means end of column
         if [[ "$char" == "," && "$inside_quotes" == "false" ]]; then
             # Trim whitespace and add to array
             accum="${accum%"${accum##*[![:space:]]}"}"
@@ -582,7 +590,7 @@ tokenize_column_names_and_values() {
 
         # Skip formatting characters when not in a value
         if [[ "$inside_value" == "false" && "$inside_quotes" == "false" ]]; then
-            if [[ "$char" == " " || "$char" == "(" || "$char" == ")" ]]; then
+            if [[ "$char" == "(" || "$char" == ")" ]]; then
                 continue
             fi
         fi
