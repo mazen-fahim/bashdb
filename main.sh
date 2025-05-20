@@ -7,8 +7,8 @@
 # i run them as souce because i want their return values $? to be seen in
 # here the main script
 source utils.sh
-source color.sh
 source error.sh
+source help.sh
 
 source create_query.sh
 source insert_query.sh
@@ -18,6 +18,7 @@ source select_query.sh
 source drop_query.sh
 source list_tables.sh
 
+shopt -s nocasematch
 # a global list of all databases created so far.
 LC_COLLATE=C
 shopt -s extglob
@@ -129,7 +130,6 @@ connect_database () {
     print_error 1 "${db_name}"
     return 1
   fi
-  echo ""
 }
 
 
@@ -179,29 +179,6 @@ create_database () {
 
 
 # shows the help manual
-show_help () {
-  echo "bashdb is a database engine written in bash. I regret doing this :("
-  echo "When you first start bashdb you have a main database"
-  echo ""
-  echo "Commands"
-  printf "  %-20s%s\n" "help" "Shows this help" 
-  printf "  %-20s%s\n" "ls" "If not connected to any database, lists all existing databases" 
-  printf "  %-20s%s\n" " " "If connected to a database, lists all tables inside the database"
-  printf "  %-20s%s\n" "connect NAME" "If not connected to a database, connects to the database" 
-  printf "  %-20s%s\n" " " "If connected to a database, results in an error (you are already connected)" 
-  printf "  %-20s%s\n" "create NAME" "If not connected to a database, creates a new database" 
-  printf "  %-20s%s\n" " " "If connected to a database, creates a new table inside the database"
-  printf "  %-20s%s\n" "drop NAME" "If not connected to a database, deletes the database" 
-  printf "  %-20s%s\n" " " "If connected to a database, deletes the table inside the database"
-  printf "  %-20s%s\n" "clear" "clear the terminal" 
-  printf "  %-20s%s\n" "exit" "If not connected to any database, exits from bashdb" 
-  printf "  %-20s%s\n" " " "If connected to a database, exits from the database" 
-  echo ""
-  echo "Prompt"
-  printf "  %-20s%s\n" "\"bashdb@# >\"" "# means you are currently not connected to any database" 
-  printf "  %-20s%s\n" "\"bashdb@NAME >\"" "NAME is the name of the databases you are currently connected to." 
-  echo ""
-}
 
 
 run () {

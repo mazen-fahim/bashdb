@@ -1,7 +1,6 @@
 #! /usr/bin/bash
 
 source utils.sh
-source regexp.sh
 
 # parameter 1: connected database name
 # parameter 2: sql update query
@@ -21,7 +20,7 @@ source regexp.sh
 
 handel_update_query(){
   local database_name="${1}"
-  local query="${2}" # this handles if user entered query uppercase
+  local query="${2}" 
 
   #                       -------------------------------
   # 1. will match this -> |update  table_name   set     |
@@ -78,7 +77,6 @@ handel_update_query(){
       where_value="$(remove_leading_trailing_whitespaces "${BASH_REMATCH[3]}")"
       query=$(sed -n -r "s/${where_pattern}//p" <<< "$query")
     else
-      echo "ana 2 ${query}"
       print_error 7
       return 7
     fi
@@ -105,7 +103,8 @@ handel_update_query(){
     return 5
   fi
 
-  #################### 4. TOKENIZE COLUM NAMES AND VALUES  ####################
+  #################### 4. TOKENIZE COLUMN NAMES AND VALUES  ####################
+  
   local tokenized_data
   local column_names
   local column_indecies # array holding column indecies into the main table starting from 1

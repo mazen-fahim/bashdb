@@ -1,7 +1,6 @@
 #! /usr/bin/bash
 
 source utils.sh
-source regexp.sh
 
 # parameter 1: connected database name
 # parameter 2: table name to drop

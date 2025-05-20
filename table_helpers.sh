@@ -307,8 +307,6 @@ check_primary_key(){
     if [[ "${column_name}" == "${primary_key_column_name}" ]]; then
       # logic check that the value doesn't already exsist.
       local result
-      echo "EL COLUMN PTA3 EL PRIMARY KEY MWGOOD FE EL 5ANA RKM $primary_key_column_field_number"
-      echo "WE EL KEMA ELY 3AYZ A7OTHA FEH = $value"
       result=$(awk -F : -v primary_key_column_field_number="$primary_key_column_field_number" -v value="$value" '
       BEGIN{
         current_value=0
@@ -320,7 +318,6 @@ check_primary_key(){
         }
       }
       ' < "${dbms_dir}/${db_name}/${table_name}")
-      echo "ANA EL RESULE= $result"
 
       if [[ "$result" == "already_exists" ]]; then
         print_error 10 "$column_name"

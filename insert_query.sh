@@ -1,7 +1,6 @@
 #! /usr/bin/bash
 
 source utils.sh
-source regexp.sh
 
 # parameter 1: connected database name
 # parameter 2: sql insert query
@@ -44,6 +43,7 @@ handle_insert_query() {
   # 4. will match this -> |(  'value1', 123, '#2value2')|
   #                       -------------------------------
   local column_values_pattern="^\(([[:space:]]*($value_pattern)[[:space:]]*)(,[[:space:]]*($value_pattern)[[:space:]]*)*\)$"
+  ###############  1. CHECK SYNTAX  #########################
 
   local table_name
   declare -a matches
@@ -62,7 +62,6 @@ handle_insert_query() {
     matches+=("$(remove_leading_trailing_whitespaces "${BASH_REMATCH[0]}")")
     query=$(sed -n -r "s/${column_names_pattern}//p" <<< "$query")
   else
-    echo "MEEE"
     print_error 7
     return 7
   fi
@@ -91,39 +90,55 @@ handle_insert_query() {
     return 7
   fi
 
-  ##########################################################################################
-
+  ####################  2. CHECK TABLE NAME validity   ####################
   check_name_validity "$table_name"
   if [[ ! $? -eq 0 ]]; then
     print_error 4 "$table_name"
     return 4
-  fi
-
+  fi  
+#################### 3. CHECK TABLE DOESN'T EXIST        ####################
   if [[ ! -f "${dbms_dir}/${database_name}/${table_name}" ]]; then
     print_error 5 "$table_name"
     return 5
   fi
 
+#################### 4. TOKENIZE COLUMN NAMES ####################
+
   local column_names_matched_string="${matches[0]}"
   local column_names
   tokenize_column_names "$column_names_matched_string" column_names
+
+#################### 5. TOKENIZE COLUMN VALUES ####################
 
   local values_matched_string="${matches[1]}"
   local values
   tokenize_values "$values_matched_string" values
 
+####################  6. CHECK VALUES COUNT   ####################
   check_columns_values_count "${#column_names[@]}" "${#values[@]}"
   if [ ! "$?" -eq 0 ]; then return "$?"; fi
+
+####################  7. CHECK COLUMNS NAME VALIDITY   ####################
   check_columns_name_validity "${#column_names[@]}" "${column_names[@]}"
   if [ ! "$?" -eq 0 ]; then return "$?"; fi
+
+####################  8. CHECK COLUMNS NAME REPEATED   ####################
   check_repeated_column_name "${column_names[@]}"
   if [ ! "$?" -eq 0 ]; then return "$?"; fi
+
+####################  9. CHECK COLUMNS EXISTENCE   ####################
   check_columns_existence "$database_name" "$table_name" "${#column_names[@]}" "${column_names[@]}"
   if [ ! "$?" -eq 0 ]; then return "$?"; fi
+
+#################### 10. CHECK COLUMNS DATA TYPES   ####################
   check_data_types "${database_name}" "${table_name}" "${#column_names[@]}" "${column_names[@]}" "${#values[@]}" "${values[@]}"
   if [ ! "$?" -eq 0 ]; then return "$?"; fi
+
+#################### 11. CHECK PRIMARY KEY   ####################
   check_primary_key "${database_name}" "${table_name}" "${#column_names[@]}" "${column_names[@]}" "${#values[@]}" "${values[@]}"
   if [ ! "$?" -eq 0 ]; then return "$?"; fi
+
+####################           LOGIC           ####################
 
   local sz="${#column_names[@]}"
   for((i = 0; i < sz; i++)); do
@@ -138,4 +153,8 @@ handle_insert_query() {
   ' < "${dbms_dir}/${database_name}/_${table_name}" | tr '\n' ':')
   place_holder=${place_holder%:}
   echo -e "$place_holder" >> "${dbms_dir}/${database_name}/${table_name}"
+
+  echo -e "${GREEN}VALUES INSERTED: INTO ${table_name}${NC}"
+  echo ""
+
 }

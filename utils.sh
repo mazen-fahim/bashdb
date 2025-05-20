@@ -2,6 +2,8 @@
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 NC='\033[0m' # No Color
+name_pattern="[a-zA-Z][a-zA-Z0-9_ ]*"
+value_pattern="'([^']*)'|[0-9]*"
 
 # parameter 1: choice to be validated
 # parameter 2: lower bound (usually just 1 the first selection)

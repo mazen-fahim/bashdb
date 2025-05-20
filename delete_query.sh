@@ -1,7 +1,6 @@
 #! /usr/bin/bash
 
 source utils.sh
-source regexp.sh
 
 # parameter 1: connected database name
 # parameter 2: sql delete query
@@ -17,16 +16,17 @@ source regexp.sh
 # sql language keywords.
 handle_delete_query() {
   local database_name="${1}"
-  local query="${2,,}" # this handles if user entered query uppercase
+  local query="${2,,}" 
   local table_name
   local column_name
   local logical_operator
   local check_value
 
-  ############ 1. CHECK SYNTAX                ######################
+  #################### 1. CHECK SYNTAX   ####################
   #                       ---------------------------------------------------------
   # 1. will match this -> |delete   from   table_name where column_name > 'value' |
   #                       ---------------------------------------------------------
+  
   local delete_query_pattern="^delete[[:space:]]+from[[:space:]]+([a-zA-Z][a-zA-Z0-9_ ]*)[[:space:]]+where[[:space:]]+([a-zA-Z][a-zA-Z0-9_ ]*)[[:space:]]*(>=|<=|!=|=|>|<)[[:space:]]*('[^']*'|[0-9]+)"
   query=$(remove_leading_trailing_whitespaces "$query")
   if [[ $query =~ $delete_query_pattern ]]; then
@@ -45,33 +45,33 @@ handle_delete_query() {
     return 7
   fi
 
-  ############ 2. CHECK TABLE NAME VALIDITY   ######################
+  #################### 2. CHECK TABLE NAME VALIDITY   ####################
   check_name_validity "$table_name"
   if [[ ! $? -eq 0 ]]; then
     print_error 4 "$table_name"
     return 4
   fi
 
-  ############ 3. CHECK IF TABLE EXISTS       ######################
+  #################### 3. CHECK IF TABLE EXISTS      ####################
   if [[ ! -f "${dbms_dir}/${database_name}/${table_name}" ]]; then
     print_error 5 "$table_name"
     return 5
   fi
 
-  ############ 4. CHECK COLUMN NAME VALIDITY  ######################
+  #################### 4. CHECK COLUMN NAME VALIDITY  ####################
   check_columns_name_validity "1" "$column_name"
   if [ ! "$?" -eq 0 ]; then return "$?"; fi
 
-  ############ 5. CHECK IF COLUMN EXISTS      ######################
+  #################### 5. CHECK IF COLUMN EXISTS      ####################
   check_columns_existence "$database_name" "$table_name" "1" "$column_name"
   if [ ! "$?" -eq 0 ]; then return "$?"; fi
 
-  ############ 6. CHECK IF THE THE COLUMN MATCHES THE DATA TYPE OF THE VALUE ########
+  #################### 6. CHECK IF THE THE COLUMN MATCHES THE DATA TYPE OF THE VALUE ####################
   check_data_types "${database_name}" "${table_name}" "1" "$column_name" "1" "$check_value"
   if [ ! "$?" -eq 0 ]; then return "$?"; fi
 
-  ############ 7. CHECK IF WE ARE DEALING WITH STRINGS SO THAT WE ONLY ALLOW ########
-  ############    LOGICAL OPERATORS "=" AND "!="                             ########
+  #################### 7. CHECK IF WE ARE DEALING WITH STRINGS SO THAT WE ONLY ALLOW ####################
+  ####################    LOGICAL OPERATORS "=" AND "!="   ####################
   local value_type
   if [[ "${check_value:0:1}" == "'" ]]; then
     value_type="varchar"
@@ -86,7 +86,7 @@ handle_delete_query() {
     fi
   fi
 
-  ############ 8. LOGIC                       ######################
+  #################### 8. LOGIC  ####################
   local table_path="${dbms_dir}/${database_name}/${table_name}"
   local meta_table_path="${dbms_dir}/${database_name}/_${table_name}"
   local column_number

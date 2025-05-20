@@ -1,6 +1,5 @@
 #! /usr/bin/bash
 source utils.sh
-source regexp.sh
 
 # parameter 1: connected database name
 # parameter 2: sql select query
@@ -12,6 +11,8 @@ source regexp.sh
 # TODO: sql supports ; as end of statement (maybe support it)
 # TODO: make sure that anyname used in the query is not one of the 
 # sql language keywords.
+
+
 handle_select_query() {
   local database_name="${1}"
   local query="${2}"
@@ -24,7 +25,6 @@ handle_select_query() {
   #                       ---------
   # 1. will match this -> |select |
   #                       ---------
-
   local select_pattern="^select"
 
   #                       ------------------------
@@ -32,31 +32,30 @@ handle_select_query() {
   #                       ------------------------
   local select_column_names_pattern="^\((\s*($name_pattern|\*)\s*(,|\)))+"
 
-  #                       ------------------------
-  # 3. will match this -> | from     table_name  |
-  #                       ------------------------
-  #TODO: seperate the name pattern in a global variable
+  #                       ---------------------------------------------
+  # 3. will match this -> | from table_name | from table_name  where  |
+  #                       ---------------------------------------------
   local from_table_pattern="^from\s+($name_pattern)"
   local where_from_table_pattern="^from\s+($name_pattern)\s+where"
 
   #                       --------------------------------------
-  # 4. will match this -> | where  column  name  >  ' value '  |
+  # 4. will match this -> | column  name  >         ' value '  |
   #                       --------------------------------------
   local where_pattern="^($name_pattern)[[:space:]]*(>=|<=|!=|=|>|<)[[:space:]]*($value_pattern)"
 
-  ###############  1. CECHK SYNTAX  #########################
- query=$(remove_leading_trailing_whitespaces "$query")
+  ###############  1. CHECK SYNTAX  #########################
+
+  query=$(remove_leading_trailing_whitespaces "$query")
   if [[ "$query" =~ $select_pattern ]]; then
-    query=$(sed -n -r "s/${select_pattern}//p" <<< "$query")
-  else
-    print_error 7
-    return 7
-  fi
+      query=$(sed -n -r "s/${select_pattern}//p" <<< "$query")
+    else
+      print_error 7
+      return 7
+    fi
 
   query=$(remove_leading_trailing_whitespaces "$query")
   if [[ "$query" =~ $select_column_names_pattern ]]; then
     matched_column_names="$(remove_leading_trailing_whitespaces "${BASH_REMATCH[0]}")"
-    echo "Matched Column Names : $matched_column_names"
     query=$(sed -n -r "s/${select_column_names_pattern}//p" <<< "$query")
   else
     print_error 7
@@ -75,7 +74,6 @@ handle_select_query() {
     query=$(remove_leading_trailing_whitespaces "$query")
     if [[ "$query" =~ $from_table_pattern ]]; then
       table_name="$(remove_leading_trailing_whitespaces "${BASH_REMATCH[1]}")"
-      echo "Table Name: $table_name"
       query=$(sed -n -r "s/${from_table_pattern}//p" <<< "$query")
     else
       print_error 7
@@ -85,7 +83,6 @@ handle_select_query() {
     query=$(remove_leading_trailing_whitespaces "$query")
     if [[ "$query" =~ $where_from_table_pattern ]]; then
       table_name="$(remove_leading_trailing_whitespaces "${BASH_REMATCH[1]}")"
-      echo "Table Name: $table_name"
       query=$(sed -n -r "s/${where_from_table_pattern}//p" <<< "$query")
     else
       print_error 7
@@ -97,9 +94,6 @@ handle_select_query() {
       where_column_name="$(remove_leading_trailing_whitespaces "${BASH_REMATCH[1]}")"
       where_logical_operator="$(remove_leading_trailing_whitespaces "${BASH_REMATCH[2]}")"
       where_value="$(remove_leading_trailing_whitespaces "${BASH_REMATCH[3]}")"
-      echo "Where Column Name: $where_column_name"
-      echo "Where Logical Operator: $where_logical_operator"
-      echo "Where Value: $where_value"
       query=$(sed -n -r "s/${where_pattern}//p" <<< "$query")
     else
       print_error 7
@@ -115,29 +109,28 @@ handle_select_query() {
   local meta_table_path="${dbms_dir}/${database_name}/_${table_name}"
   local table_path="${dbms_dir}/${database_name}/${table_name}"
 
-  ###############  2. CECHK TABLE NAME   ####################
+  ####################  2. CHECK TABLE NAME validity   ####################
   check_name_validity "$table_name"
   if [[ ! $? -eq 0 ]]; then
     print_error 4 "$table_name"
     return 4
   fi
 
-  ###############  3. CECHK TABLE DOESN'T EXISIT  ###########
+  #################### 3. CHECK TABLE DOESN'T EXIST        ####################
   if [[ ! -f "${dbms_dir}/${database_name}/${table_name}" ]]; then
     print_error 5 "$table_name"
     return 5
   fi
 
-  ###############  4. CECHK COLUMN NAMES VALIDITY                   ##########
+  #################### 4. TOKENIZE COLUM NAMES  ####################
 
-  # TOKENIZE
   local column_names
   tokenize_column_names "$matched_column_names" column_names
   check_columns_name_validity "${#column_names[@]}" "${column_names[@]}"
   if [ ! "$?" -eq 0 ]; then return "$?"; fi
 
 
-  ###############  5. CECHK IF ASTRIX IS ALONE OR NOT  ##########
+  ####################  5. CHECK IF ASTRIX IS ALONE OR NOT  ####################
   if [[ "${#column_names[@]}" > 1 ]]; then
     for column_name in "${column_names[@]}"; do
       if [[ "$column_name" == "*" ]]; then
@@ -153,25 +146,26 @@ handle_select_query() {
     column_names=($(tail -1 ${table_path} | tr ':' ' '))
   fi
 
-  ###############  6. CECHK COLUMN NAMES EXISTENCE                  ##########
+  ####################  6. CHECK COLUMN NAMES EXISTENCE    ####################
   check_columns_existence "$database_name" "$table_name" "${#column_names[@]}" "${column_names[@]}"
   if [ ! "$?" -eq 0 ]; then return "$?"; fi
 
   if [[ "$found_where" == "true" ]]; then
-    ############ 7. CHECK WHERE COLUMN NAME VALIDITY  ######################
+  #################### 7. CHECK WHERE COLUMN NAME VALIDITY  ####################
     check_columns_name_validity "1" "$where_column_name"
     if [ ! "$?" -eq 0 ]; then return "$?"; fi
 
-    ############ 8. CHECK IF WHERE COLUMN NAME EXISTS      ######################
+  #################### 8. CHECK IF WHERE COLUMN NAME EXISTS ####################
     check_columns_existence "$database_name" "$table_name" "1" "$where_column_name"
     if [ ! "$?" -eq 0 ]; then return "$?"; fi
 
-    ############ 9. CHECK IF THE THE WHERE COLUMN MATCHES THE DATA TYPE OF THE WHERE VALUE ########
+  #################### 9. CHECK IF THE THE WHERE COLUMN MATCHES THE DATA TYPE OF THE WHERE VALUE ####################
     check_data_types "${database_name}" "${table_name}" "1" "$where_column_name" "1" "$where_value"
     if [ ! "$?" -eq 0 ]; then return "$?"; fi
 
-    ############ 10. CHECK IF WE ARE DEALING WITH STRINGS SO THAT WE ONLY ALLOW ########
-    ############    LOGICAL OPERATORS "=" AND "!="                             ########
+  #################### 10. CHECK IF WE ARE DEALING WITH STRINGS SO THAT WE ONLY ALLOW ########
+    ############    LOGICAL OPERATORS "=" AND "!="   ############
+    
     local value_type
     if [[ "${where_value:0:1}" == "'" ]]; then
       value_type="varchar"
@@ -187,7 +181,7 @@ handle_select_query() {
     fi
   fi
 
-  ###############  11. LOGIC   ##################################
+  ####################  11. LOGIC   ####################
   local column_name
   local column_number
   local column_sz
