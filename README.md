@@ -1,7 +1,7 @@
 bashdb is a database engine that implements a subset of the SQL query language completely in bash.
 
 # Demo
-![demo](demo.gif)
+![preview](preview.gif)
 
 # Usage
 ```bash
