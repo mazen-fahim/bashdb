@@ -268,7 +268,7 @@ handel_update_query(){
   place_holder=${place_holder%:}
   echo -e "$place_holder" >> "$table_path"
 
-  echo -e "${GREEN}Modified $number_of_records_passed_condition records.${NC}"
+  echo -e "${GREEN}$number_of_records_passed_condition records are modified.${NC}"
   echo ""
   rm -f "$table_path.tmp1" "$table_path.tmp2" "$table_path.tmp3"
 }

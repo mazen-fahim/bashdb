@@ -247,6 +247,7 @@ handle_select_query() {
 
   local records_sz=$(($(cat "${table_path}.tmp" | wc -l)))
   print_table "$columns_sz" "$records_sz" "${column_names[@]}" "$(declare -p data)"
+  echo ""
   rm "${table_path}.tmp"
 
 }

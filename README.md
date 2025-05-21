@@ -1,11 +1,13 @@
-# DBMS
+bashdb is a database engine that implements a subset of the SQL query language completely in bash.
 
-A database engine written completely in bash.
-you can
+# Demo
+![demo](demo.gif)
 
-1. list/connect/create/drop databases
-2. list/create/insert/modify/drop tables.
-3. specify the datatype of columns.
-4. specify primary key constraint for each table.
-
+# Usage
+```bash
+git clone https://github.com/mazen-fahim/bashdb
+cd bashdb
+chmod u+x bashdb.sh
+./bashdb.sh
+```
 

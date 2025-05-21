@@ -29,7 +29,7 @@ handle_drop_query() {
     if [ -f "${dbms_dir}/${database_name}/${table_name}" ]; then
       rm "${dbms_dir}/${database_name}/${table_name}"
       rm "${dbms_dir}/${database_name}/_${table_name}"
-      echo -e "${GREEN}Removed table ${table_name}${NC}"
+      echo -e "${GREEN}Table \"${table_name}\" is dropped.${NC}"
       echo ""
     else
       print_error 5 "${table_name}"

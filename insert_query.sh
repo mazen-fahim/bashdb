@@ -154,7 +154,7 @@ handle_insert_query() {
   place_holder=${place_holder%:}
   echo -e "$place_holder" >> "${dbms_dir}/${database_name}/${table_name}"
 
-  echo -e "${GREEN}VALUES INSERTED: INTO ${table_name}${NC}"
+  echo -e "${GREEN}1 record is inserted into ${table_name}${NC}"
   echo ""
 
 }

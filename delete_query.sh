@@ -101,6 +101,7 @@ handle_delete_query() {
   }
   ' < "${meta_table_path}")
 
+  local no_of_records_before_delete=$(($(cat "$table_path" | wc -l) - 1))
   awk -F : -v column_number="$column_number" -v logical_operator="$logical_operator" -v check_value="$check_value" '
   NR == FNR { total = NR; next }        # First pass: count total lines
   FNR == total { next }                 # Second pass: skip the last line
@@ -113,7 +114,13 @@ handle_delete_query() {
     else if (logical_operator == "<"  && $column_number < check_value) next
     print
   }
-  ' "$table_path" "$table_path" > "${table_path}.tmp" && mv "${table_path}.tmp" "$table_path"
+  ' "$table_path" "$table_path" > "${table_path}.tmp"
+  local no_of_records_after_delete=$(cat "$table_path.tmp" | wc -l)
+  local no_of_records_deleted=$((no_of_records_before_delete - no_of_records_after_delete))
+  mv "${table_path}.tmp" "$table_path"
+  echo -e "${GREEN}$no_of_records_deleted records are deleted.${NC}"
+  echo ""
+
 
   # Don't forget to add the place holder after deleting
   place_holder=$(awk -F : '

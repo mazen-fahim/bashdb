@@ -116,7 +116,7 @@ handle_create_query() {
   local primary_key_column_name
   for (( i=0 ; i < number_of_columns; i++)); do
     field_str=$(cut -d "," -f $((i+1)) <<< "$create_matched_paren")
-    echo "$field_str" | grep "primary"
+    echo "$field_str" | grep "primary" > /dev/null
     if [[ "$?" == 0 ]]; then
       primary_key_column_name="${column_names[$i]}"
       break
@@ -152,7 +152,7 @@ handle_create_query() {
   echo -e "$place_holder" >> "${dbms_dir}/${database_name}/${table_name}"
 
   #################### 4. SUCCESSFUL ECO ####################
-  echo -e "${GREEN}Table \"$table_name\" was created${NC}"
+  echo -e "${GREEN}Table \"$table_name\" is created.${NC}"
   echo ""
 
 }
